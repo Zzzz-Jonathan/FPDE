@@ -2,7 +2,7 @@ import os
 import torch
 from condition import loss_pde, loss_data, loss_les
 from data_num import rare_dataloader as dataloader
-from data_num import rare_validation_data, rare_validation_label
+from data_num import validation_data, validation_label
 from module import Module
 from parameter import NN_SIZE, module_name, device, EPOCH, LOSS
 import numpy as np
@@ -16,56 +16,73 @@ module_name = module_name + '_les'
 
 if __name__ == '__main__':
     print(device)
-    NN = Module(NN_SIZE).to(device)
-    opt = torch.optim.Adam(params=NN.parameters())
+    NN_les = Module(NN_SIZE).to(device)
+    opt_les = torch.optim.Adam(params=NN_les.parameters())
+
+    NN_ns = Module(NN_SIZE).to(device)
+    opt_ns = torch.optim.Adam(params=NN_ns.parameters())
+
     start_epoch = 0
 
     writer = SummaryWriter('/Users/jonathan/Documents/PycharmProjects/cylinder_flow/train_history')
 
-    if os.path.exists(module_name) and load:
-        state = torch.load(module_name)
-
-        NN.load_state_dict(state['model'])
-        opt.load_state_dict(state['optimizer'])
-        start_epoch = state['epoch']
-
-        print('Start from epoch = %d' % start_epoch)
-
-    min_loss = 1e6
+    min_loss_1, min_loss_2 = 1e6, 1e6
     iter = 0
 
     # tensorboard --logdir=/Users/jonathan/Documents/PycharmProjects/cylinder_flow/train_history --port 14514
 
     for epoch in range(start_epoch, EPOCH):
         for t_x_y, num_solution in dataloader:
-            opt.zero_grad()
+            opt_les.zero_grad()
+            opt_ns.zero_grad()
             iter += 1
 
-            les_loss = loss_les(NN, t_x_y)
-            data_loss = loss_data(NN, t_x_y, num_solution)
-            # with the les loss, total loss decrease faster and lower
+            les_loss = loss_les(NN_les, t_x_y)
+            data_loss_1 = loss_data(NN_les, t_x_y, num_solution)
 
-            loss = data_loss + les_loss
+            pde_loss = loss_pde(NN_ns, t_x_y)
+            data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
-            validation_loss = LOSS(NN(rare_validation_data), rare_validation_label)
+            loss_1 = data_loss_1 + les_loss
+            loss_2 = data_loss_2 + pde_loss
 
-            writer.add_scalar('1_loss', {'train': loss, 'validation': validation_loss}, iter)
-            writer.add_scalar('3_les_loss', les_loss, iter)
-            writer.add_scalar('4_data_loss', data_loss, iter)
+            validation_loss_1 = LOSS(NN_les(validation_data), validation_label)
+            validation_loss_2 = LOSS(NN_ns(validation_data), validation_label)
 
-            loss.backward()
-            opt.step()
+            writer.add_scalar('1_loss', {'train': loss_1, 'validation': validation_loss_1}, iter)
+            writer.add_scalar('2_loss', {'train': loss_2, 'validation': validation_loss_2}, iter)
+            writer.add_scalar('les_loss', les_loss, iter)
+            writer.add_scalar('pde_loss', pde_loss, iter)
+            writer.add_scalar('data_loss_1', data_loss_1, iter)
+            writer.add_scalar('data_loss_2', data_loss_2, iter)
 
-            if loss.item() < min_loss:
-                min_loss = loss.item()
-                print('______Best loss model %.8f______' % loss.item())
+            loss_1.backward()
+            loss_2.backward()
+            opt_ns.step()
+            opt_les.step()
+
+            if loss_1.item() < min_loss_1:
+                min_loss_1 = loss_1.item()
+                print('______Best loss model %.8f______' % loss_1.item())
                 print('LES loss is %.8f' % les_loss.item())
-                print('DATA loss is %.8f' % data_loss.item())
+                print('DATA loss is %.8f' % data_loss_1.item())
                 # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
                 if store:
-                    state = {'model': NN.state_dict(),
-                             'optimizer': opt.state_dict(),
+                    state = {'model': NN_les.state_dict(),
+                             'optimizer': opt_les.state_dict(),
                              'epoch': epoch}
-                    torch.save(state, module_name)
+                    torch.save(state, module_name + '_les')
+
+            if loss_2.item() < min_loss_2:
+                min_loss_2 = loss_2.item()
+                print('______Best loss model %.8f______' % loss_2.item())
+                print('PDE loss is %.8f' % pde_loss.item())
+                print('DATA loss is %.8f' % data_loss_2.item())
+                # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
+                if store:
+                    state = {'model': NN_ns.state_dict(),
+                             'optimizer': opt_ns.state_dict(),
+                             'epoch': epoch}
+                    torch.save(state, module_name + '_ns')
 
         print('------%d epoch------' % epoch)

@@ -25,8 +25,8 @@ norm_data = t_x_y[:norm_size]
 norm_label = c_u_v_p[:norm_size]
 noisy_norm_label = np.random.normal(norm_label, std_cuvp)
 
-rare_validation_data = torch.FloatTensor(t_x_y[rare_size:rare_size + 10000])
-rare_validation_label = torch.FloatTensor(c_u_v_p[rare_size:rare_size + 10000])
+validation_data = torch.FloatTensor(t_x_y[rare_size:rare_size + 10000])
+validation_label = torch.FloatTensor(c_u_v_p[rare_size:rare_size + 10000])
 
 rare_dataset = dataset(torch.FloatTensor(rare_data).requires_grad_(True).to(device), torch.FloatTensor(rare_label).to(device))
 rare_dataloader = DataLoader(dataset=rare_dataset,
