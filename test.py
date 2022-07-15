@@ -1,7 +1,7 @@
 import os
 import torch
 from module import Module
-from parameter import NN_SIZE, module_name
+from parameter import NN_SIZE, module_name, noisy_rate
 from condition import numerical_data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +21,9 @@ def my_plot(_x, _y, _z):
     plt.colorbar()
     # plt.contourf(dxs, dys, z_new, levels=50, cmap=plt.get_cmap('Spectral'))
 
+    cylinder = plt.Circle(xy=(250, 250), radius=50, alpha=1, color='white')
+    plt.gca().add_patch(cylinder)
+
     plt.show()
 
 
@@ -32,14 +35,21 @@ def scat(_x, _y, _z):
 
 
 if __name__ == '__main__':
-    NN = Module(NN_SIZE)
-    module_name = 'train_history/Cylinder_200_02635232'
-    # writer = SummaryWriter('/Users/jonathan/Documents/PycharmProjects/cylinder_flow/train_history')
+    NN2 = Module(NN_SIZE)
+    module_name = 'Cylinder_200_les_ns'
 
     if os.path.exists(module_name):
-        state = torch.load(module_name)
+        state = torch.load(module_name, map_location=torch.device('cpu'))
 
-        NN.load_state_dict(state['model'])
+        NN2.load_state_dict(state['model'])
+
+    NN1 = Module(NN_SIZE)
+    module_name = 'Cylinder_200_les_les'
+
+    if os.path.exists(module_name):
+        state = torch.load(module_name, map_location=torch.device('cpu'))
+
+        NN1.load_state_dict(state['model'])
 
     t_star = numerical_data['t_data']  # T x 1, [0 -> 16]
     x_star = numerical_data['x_data']  # N x 1
@@ -52,7 +62,7 @@ if __name__ == '__main__':
     N, T = U_star.shape[0], U_star.shape[1]
     x, y = x_star[:, 0], y_star[:, 0]
 
-    for idx in np.arange(0, 16, 1):  # idx in np.arange(int(T / 10)) * 10:
+    for idx in np.arange(2, 16, 1):  # idx in np.arange(int(T / 10)) * 10:
         # t = t_star[idx][0]
         t = idx
         t_x_y = np.zeros((N, 3))
@@ -61,12 +71,27 @@ if __name__ == '__main__':
         t_x_y[:, 1] = x
         t_x_y[:, 2] = y
 
-        # x_y = np.concatenate((x_star, y_star), axis=1)
-        # c = C_star[:, idx, 0]
-        #
-        # my_plot(x, y, c)
+        x_y = np.concatenate((x_star, y_star), axis=1)
+        c = C_star
+        var_c = np.var(c)
+        c = c[:, 25, 0]
 
-        out = NN(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN = out[:, 3]
+        my_plot(x, y, c)
 
-        my_plot(x, y, c_NN)
+        std_c = noisy_rate * np.sqrt(var_c)
+        c = np.random.normal(c, std_c)
+
+        my_plot(x, y, c)
+
+        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN1 = out[:, 0]
+
+        my_plot(x, y, c_NN1)
+
+        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN2 = out[:, 0]
+
+        my_plot(x, y, c_NN2)
+
+        break
+
