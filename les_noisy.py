@@ -98,10 +98,11 @@ if __name__ == '__main__':
 
             if validation_loss_1.item() < min_loss_1:
                 min_loss_1 = validation_loss_1.item()
-                print('______Best LES loss model %.8f______' % loss_1.item())
+                print('______Best loss model %.8f______' % loss_1.item())
                 print('LES loss is %.8f' % les_loss.item())
                 print('DATA loss is %.8f' % data_loss_1.item())
-
+                print('Validation loss is %.8f' % validation_loss_1.item())
+                # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
                 if store:
                     state = {'model': NN_les.state_dict(),
                              'optimizer': opt_les.state_dict(),
@@ -110,10 +111,11 @@ if __name__ == '__main__':
 
             if validation_loss_2.item() < min_loss_2:
                 min_loss_2 = validation_loss_2.item()
-                print('______Best NS loss model %.8f______' % loss_2.item())
+                print('______Best loss model %.8f______' % loss_2.item())
                 print('PDE loss is %.8f' % pde_loss.item())
                 print('DATA loss is %.8f' % data_loss_2.item())
-
+                print('Validation loss is %.8f' % validation_loss_2.item())
+                # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
                 if store:
                     state = {'model': NN_ns.state_dict(),
                              'optimizer': opt_ns.state_dict(),

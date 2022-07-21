@@ -4,14 +4,14 @@ from torch.utils.data import Dataset
 import numpy as np
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-from parameter import device, BATCH, Re, Pe, LOSS
+from parameter import device, BATCH, Re, Pe, LOSS, PICK
 
 data_dirs = ['data/Cylinder2D_Re200Pec2000_Neumann_Streaks.mat',
-             'data/Cylinder2D.mat']
-data_idx = 1
+             'data/Cylinder2D.mat',
+             'data/Stenosis2D.mat']
 
-numerical_data = scipy.io.loadmat(data_dirs[data_idx])
-lab = '_star' if data_idx == 1 else '_data'
+numerical_data = scipy.io.loadmat(data_dirs[PICK])
+lab = '_data' if PICK == 0 else '_star'
 # 'data/Cylinder2D_Re200Pec2000_Neumann_Streaks.mat'
 
 kernel = [[0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633],
@@ -51,38 +51,38 @@ def loss_pde(nn, data_inp):
 
     out = nn(data_inp.to(device))
 
-    [c, u, v, p] = torch.split(out, 1, dim=1)
-    zeros = torch.zeros_like(c)
+    [_, u, v, p] = torch.split(out, 1, dim=1)
+    zeros = torch.zeros_like(u)
 
-    c_t = gradients(c, t)
+    # c_t = gradients(c, t)
     u_t = gradients(u, t)
     v_t = gradients(v, t)
 
-    c_x = gradients(c, x)
+    # c_x = gradients(c, x)
     u_x = gradients(u, x)
-    v_x = gradients(c, x)
+    v_x = gradients(v, x)
 
-    c_y = gradients(c, y)
+    # c_y = gradients(c, y)
     u_y = gradients(u, y)
-    v_y = gradients(c, y)
+    v_y = gradients(v, y)
 
-    c_xx = gradients(c_x, x)
+    # c_xx = gradients(c_x, x)
     u_xx = gradients(u_x, x)
     v_xx = gradients(v_x, x)
 
-    c_yy = gradients(c_y, y)
+    # c_yy = gradients(c_y, y)
     u_yy = gradients(u_y, y)
     v_yy = gradients(v_y, y)
 
     p_x = gradients(p, x)
     p_y = gradients(p, y)
 
-    l1 = LOSS(c_t + (u * c_x + v * c_y) - (1.0 / Pe) * (c_xx + c_yy), zeros)
+    # l1 = LOSS(c_t + (u * c_x + v * c_y) - (1.0 / Pe) * (c_xx + c_yy), zeros)
     l2 = LOSS(u_t + (u * u_x + v * u_y) + p_x - (1.0 / Re) * (u_xx + u_yy), zeros)
     l3 = LOSS(v_t + (u * v_x + v * v_y) + p_y - (1.0 / Re) * (v_xx + v_yy), zeros)
     l4 = LOSS(u_x + v_y, zeros)
 
-    return l1, l2, l3, l4
+    return l2, l3, l4
 
 
 def loss_data(nn, data_inp, label):
@@ -119,8 +119,8 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
     nn_uvs = []
     nn_uus = []
     nn_vvs = []
-    nn_ucs = []
-    nn_vcs = []
+    # nn_ucs = []
+    # nn_vcs = []
 
     for txy, weight in zip(txys, weights):
         out = nn(txy.to(device))
@@ -129,55 +129,57 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
         nn_uvs.append(w * out[:, 1] * out[:, 2])
         nn_uus.append(w * out[:, 1] * out[:, 1])
         nn_vvs.append(w * out[:, 2] * out[:, 2])
-        nn_ucs.append(w * out[:, 0] * out[:, 1])
-        nn_vcs.append(w * out[:, 0] * out[:, 2])
+        # nn_ucs.append(w * out[:, 0] * out[:, 1])
+        # nn_vcs.append(w * out[:, 0] * out[:, 2])
 
     out_bar = sum(nn_outs)
     uv_bar = sum(nn_uvs)
     uu_bar = sum(nn_uus)
     vv_bar = sum(nn_vvs)
-    uc_bar = sum(nn_ucs)
-    vc_bar = sum(nn_vcs)
+    # uc_bar = sum(nn_ucs)
+    # vc_bar = sum(nn_vcs)
 
-    [c_bar, u_bar, v_bar, p_bar] = torch.split(out_bar, 1, dim=1)
+    [_, u_bar, v_bar, p_bar] = torch.split(out_bar, 1, dim=1)
 
-    c_bar_t = gradients(c_bar, t)
+    # c_bar_t = gradients(c_bar, t)
     u_bar_t = gradients(u_bar, t)
     v_bar_t = gradients(v_bar, t)
 
     uu_bar_x = gradients(uu_bar, x)
     uv_bar_x = gradients(uv_bar, x)
+
     uv_bar_y = gradients(uv_bar, y)
     vv_bar_y = gradients(vv_bar, y)
-    uc_bar_x = gradients(uc_bar, x)
-    vc_bar_y = gradients(vc_bar, x)
+
+    # uc_bar_x = gradients(uc_bar, x)
+    # vc_bar_y = gradients(vc_bar, y)
 
     p_bar_x = gradients(p_bar, x)
     p_bar_y = gradients(p_bar, y)
 
-    c_bar_x = gradients(c_bar, x)
-    c_bar_y = gradients(c_bar, y)
+    # c_bar_x = gradients(c_bar, x)
+    # c_bar_y = gradients(c_bar, y)
 
     u_bar_x = gradients(u_bar, x)
     v_bar_y = gradients(v_bar, y)
 
-    c_bar_xx = gradients(c_bar_x, x)
-    c_bar_yy = gradients(c_bar_y, y)
+    # c_bar_xx = gradients(c_bar_x, x)
+    # c_bar_yy = gradients(c_bar_y, y)
 
     u_bar_xx = gradients(u_bar_x, x)
-    u_bar_yy = gradients(v_bar_y, y)
+    u_bar_yy = gradients(u_bar, y, order=2)
 
     v_bar_xx = gradients(v_bar, x, order=2)
-    v_bar_yy = gradients(v_bar, y, order=2)
+    v_bar_yy = gradients(v_bar_y, y)
 
     zeros = torch.zeros_like(u_bar)
 
-    l1 = LOSS(c_bar_t + (uc_bar_x + vc_bar_y) - (1.0 / Pe) * (c_bar_xx + c_bar_yy), zeros)
+    # l1 = LOSS(c_bar_t + (u_bar * c_bar_x + v_bar * c_bar_y) - (1.0 / Pe) * (c_bar_xx + c_bar_yy), zeros)
     l2 = LOSS(u_bar_t + (uu_bar_x + uv_bar_y) + p_bar_x - (1 / Re) * (u_bar_yy + u_bar_xx), zeros)
     l3 = LOSS(v_bar_t + (uv_bar_x + vv_bar_y) + p_bar_y - (1 / Re) * (v_bar_xx + v_bar_yy), zeros)
     l4 = LOSS(u_bar_x + v_bar_y, zeros)
 
-    return l1, l2, l3, l4
+    return l2, l3, l4
 
     # print(gradients(p_bar, x))
 

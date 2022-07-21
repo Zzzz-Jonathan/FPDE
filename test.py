@@ -74,6 +74,8 @@ if __name__ == '__main__':
     P_star = numerical_data['P' + lab][:, :, None]  # N x T
     C_star = numerical_data['C' + lab][:, :, None]  # N x T
 
+    print(C_star)
+
     N, T = U_star.shape[0], U_star.shape[1]
     x, y = x_star[:, 0], y_star[:, 0]
 
@@ -86,9 +88,9 @@ if __name__ == '__main__':
         t_x_y[:, 1] = x
         t_x_y[:, 2] = y
 
-        name = 'p'
-        iidx = 3
-        c = P_star
+        name = 'c'
+        iidx = 0
+        c = C_star
 
         x_y = np.concatenate((x_star, y_star), axis=1)
         var_c = np.var(c)
