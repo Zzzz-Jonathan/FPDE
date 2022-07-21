@@ -49,12 +49,12 @@ if __name__ == '__main__':
             # index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
             # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
-            les_loss_u, les_loss_v, les_loss_p = loss_les(NN_les, t_x_y)  # + loss_les(NN_les, t_x_y_col)
-            les_loss = les_loss_u + les_loss_v + les_loss_p
+            les_loss_c, les_loss_u, les_loss_v, les_loss_div = loss_les(NN_les, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            les_loss = les_loss_c + les_loss_u + les_loss_v + les_loss_div
             data_loss_1 = loss_data(NN_les, t_x_y, num_solution)
 
-            pde_loss_u, pde_loss_v, pde_loss_p = loss_pde(NN_ns, t_x_y)
-            pde_loss = pde_loss_u + pde_loss_v + pde_loss_p
+            pde_loss_c, pde_loss_u, pde_loss_v, pde_loss_div = loss_pde(NN_ns, t_x_y)
+            pde_loss = pde_loss_c + pde_loss_u + pde_loss_v + pde_loss_div
             data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
             loss_1 = data_loss_1 + les_loss
@@ -83,13 +83,15 @@ if __name__ == '__main__':
                                           'data_loss': data_loss_2}, iter)
 
             writer.add_scalars('les_loss', {'loss': les_loss,
+                                            'loss_c': les_loss_c,
                                             'loss_u': les_loss_u,
                                             'loss_v': les_loss_v,
-                                            'loss_p': les_loss_p}, iter)
+                                            'loss_p': les_loss_div}, iter)
             writer.add_scalars('pde_loss', {'loss': pde_loss,
+                                            'loss_c': pde_loss_c,
                                             'loss_u': pde_loss_u,
                                             'loss_v': pde_loss_v,
-                                            'loss_p': pde_loss_p}, iter)
+                                            'loss_p': pde_loss_div}, iter)
 
             writer.add_scalars('les_validation_loss', {'total': validation_loss_1,
                                                        'c': les_c, 'u': les_u,
@@ -98,7 +100,7 @@ if __name__ == '__main__':
                                                       'c': ns_c, 'u': ns_u,
                                                       'v': ns_v, 'p': ns_p}, iter)
 
-            data_loss_1.backward(retain_graph=True)  #
+            loss_1.backward(retain_graph=True)  #
             opt_les.step()
             loss_2.backward()
             opt_ns.step()

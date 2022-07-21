@@ -11,8 +11,8 @@ import scipy.io
 
 TIME = [0, 5, 10, 15]
 
-normalize = False
-c_norm = Normalize(vmin=0, vmax=1.2)
+normalize = True
+c_norm = Normalize(vmin=0, vmax=0.8)
 u_norm = Normalize(vmin=-0.2, vmax=1.4)
 v_norm = Normalize(vmin=-0.8, vmax=0.8)
 p_norm = Normalize(vmin=-0.6, vmax=0.6)
@@ -51,7 +51,7 @@ def scat(_x, _y, _z):
 
 if __name__ == '__main__':
     NN2 = Module(NN_SIZE)
-    module_name = 'Cylinder_100_les_ns'
+    module_name = 'Cylinder_200_les_ns'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         NN2.load_state_dict(state['model'])
 
     NN1 = Module(NN_SIZE)
-    module_name = 'Cylinder_100_les_les'
+    module_name = 'Cylinder_200_les_les'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
@@ -74,12 +74,10 @@ if __name__ == '__main__':
     P_star = numerical_data['P' + lab][:, :, None]  # N x T
     C_star = numerical_data['C' + lab][:, :, None]  # N x T
 
-    print(C_star)
-
     N, T = U_star.shape[0], U_star.shape[1]
     x, y = x_star[:, 0], y_star[:, 0]
 
-    for idx in np.arange(2, 16, 1):  # idx in np.arange(int(T / 10)) * 10:
+    for idx in np.arange(8, 16, 1):  # idx in np.arange(int(T / 10)) * 10:
         # t = t_star[idx][0]
         t = idx
         t_x_y = np.zeros((N, 3))
@@ -88,13 +86,13 @@ if __name__ == '__main__':
         t_x_y[:, 1] = x
         t_x_y[:, 2] = y
 
-        name = 'c'
         iidx = 0
-        c = C_star
+        name = ['c', 'u', 'v', 'p'][iidx]
+        c = [C_star, U_star, V_star, P_star][iidx]
 
         x_y = np.concatenate((x_star, y_star), axis=1)
         var_c = np.var(c)
-        c = c[:, 25, 0]
+        c = c[:, 100, 0]
 
         my_plot(x, y, c, name='ori_' + name)
 
