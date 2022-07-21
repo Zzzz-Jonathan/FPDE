@@ -1,10 +1,10 @@
 import os
 import torch
 from condition import loss_pde, loss_data, loss_les
-from data_num import noisy_norm_dataloader as dataloader, collocation_points
+from data_num import noisy_rare_dataloader as dataloader, collocation_points
 from data_num import validation_data, validation_label
 from module import Module
-from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, collocation_size, BATCH
+from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, collocation_size, BATCH, ITERATION
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
@@ -49,10 +49,12 @@ if __name__ == '__main__':
             # index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
             # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
-            les_loss = loss_les(NN_les, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            les_loss_c, les_loss_u, les_loss_v, les_loss_p = loss_les(NN_les, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            les_loss = les_loss_c + les_loss_u + les_loss_v + les_loss_p
             data_loss_1 = loss_data(NN_les, t_x_y, num_solution)
 
-            pde_loss = loss_pde(NN_ns, t_x_y)
+            pde_loss_c, pde_loss_u, pde_loss_v, pde_loss_p = loss_pde(NN_ns, t_x_y)
+            pde_loss = pde_loss_c + pde_loss_u + pde_loss_v + pde_loss_p
             data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
             loss_1 = data_loss_1 + les_loss
@@ -67,8 +69,16 @@ if __name__ == '__main__':
             writer.add_scalars('2_loss', {'train': loss_2,
                                           'validation': validation_loss_2,
                                           'data_loss': data_loss_2}, iter)
-            writer.add_scalar('les_loss', les_loss, iter)
-            writer.add_scalar('pde_loss', pde_loss, iter)
+            writer.add_scalars('les_loss', {'loss': les_loss,
+                                            'loss_c': les_loss_c,
+                                            'loss_u': les_loss_u,
+                                            'loss_v': les_loss_v,
+                                            'loss_p': les_loss_p}, iter)
+            writer.add_scalars('pde_loss', {'loss': pde_loss,
+                                            'loss_c': pde_loss_c,
+                                            'loss_u': pde_loss_u,
+                                            'loss_v': pde_loss_v,
+                                            'loss_p': pde_loss_p}, iter)
 
             loss_1.backward(retain_graph=True)
             opt_les.step()
@@ -111,3 +121,5 @@ if __name__ == '__main__':
                     torch.save(state, module_name + '_ns')
 
         print('------%d epoch------' % epoch)
+        if iter > ITERATION:
+            break

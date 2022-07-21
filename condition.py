@@ -6,7 +6,14 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from parameter import device, BATCH, Re, Pe, LOSS
 
-numerical_data = scipy.io.loadmat('Cylinder2D_Re200Pec2000_Neumann_Streaks.mat')
+data_dirs = ['data/Cylinder2D_Re200Pec2000_Neumann_Streaks.mat',
+             'data/Cylinder2D.mat']
+data_idx = 1
+
+numerical_data = scipy.io.loadmat(data_dirs[data_idx])
+lab = '_star' if data_idx == 1 else '_data'
+# 'data/Cylinder2D_Re200Pec2000_Neumann_Streaks.mat'
+
 kernel = [[0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633],
           [0.00655965, 0.05472157, 0.11098164, 0.05472157, 0.00655965],
           [0.01330373, 0.11098164, 0.22508352, 0.11098164, 0.01330373],
@@ -75,11 +82,14 @@ def loss_pde(nn, data_inp):
     l3 = LOSS(v_t + (u * v_x + v * v_y) + p_y - (1.0 / Re) * (v_xx + v_yy), zeros)
     l4 = LOSS(u_x + v_y, zeros)
 
-    return l1 + l2 + l3 + l4
+    return l1, l2, l3, l4
 
 
 def loss_data(nn, data_inp, label):
     out = nn(data_inp.to(device))
+
+    # [c_label, _, _, _] = torch.split(label, 1, dim=1)
+    # [c_out, _, _, _] = torch.split(out, 1, dim=1)
 
     return LOSS(out, label)
 
@@ -109,6 +119,8 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
     nn_uvs = []
     nn_uus = []
     nn_vvs = []
+    nn_ucs = []
+    nn_vcs = []
 
     for txy, weight in zip(txys, weights):
         out = nn(txy.to(device))
@@ -117,27 +129,40 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
         nn_uvs.append(w * out[:, 1] * out[:, 2])
         nn_uus.append(w * out[:, 1] * out[:, 1])
         nn_vvs.append(w * out[:, 2] * out[:, 2])
+        nn_ucs.append(w * out[:, 0] * out[:, 1])
+        nn_vcs.append(w * out[:, 0] * out[:, 2])
 
     out_bar = sum(nn_outs)
     uv_bar = sum(nn_uvs)
     uu_bar = sum(nn_uus)
     vv_bar = sum(nn_vvs)
-    
-    [_, u_bar, v_bar, p_bar] = torch.split(out_bar, 1, dim=1)
-    
+    uc_bar = sum(nn_ucs)
+    vc_bar = sum(nn_vcs)
+
+    [c_bar, u_bar, v_bar, p_bar] = torch.split(out_bar, 1, dim=1)
+
+    c_bar_t = gradients(c_bar, t)
     u_bar_t = gradients(u_bar, t)
     v_bar_t = gradients(v_bar, t)
-    
+
     uu_bar_x = gradients(uu_bar, x)
     uv_bar_x = gradients(uv_bar, x)
     uv_bar_y = gradients(uv_bar, y)
     vv_bar_y = gradients(vv_bar, y)
-    
+    uc_bar_x = gradients(uc_bar, x)
+    vc_bar_y = gradients(vc_bar, x)
+
     p_bar_x = gradients(p_bar, x)
     p_bar_y = gradients(p_bar, y)
 
+    c_bar_x = gradients(c_bar, x)
+    c_bar_y = gradients(c_bar, y)
+
     u_bar_x = gradients(u_bar, x)
     v_bar_y = gradients(v_bar, y)
+
+    c_bar_xx = gradients(c_bar_x, x)
+    c_bar_yy = gradients(c_bar_y, y)
 
     u_bar_xx = gradients(u_bar_x, x)
     u_bar_yy = gradients(v_bar_y, y)
@@ -147,11 +172,12 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
 
     zeros = torch.zeros_like(u_bar)
 
-    l1 = LOSS(u_bar_t + (uu_bar_x + uv_bar_y) + p_bar_x - (1 / Re) * (u_bar_yy + u_bar_xx), zeros)
-    l2 = LOSS(v_bar_t + (uv_bar_x + vv_bar_y) + p_bar_y - (1 / Re) * (v_bar_xx + v_bar_yy), zeros)
-    l3 = LOSS(u_bar_x + v_bar_y, zeros)
+    l1 = LOSS(c_bar_t + (uc_bar_x + vc_bar_y) - (1.0 / Pe) * (c_bar_xx + c_bar_yy), zeros)
+    l2 = LOSS(u_bar_t + (uu_bar_x + uv_bar_y) + p_bar_x - (1 / Re) * (u_bar_yy + u_bar_xx), zeros)
+    l3 = LOSS(v_bar_t + (uv_bar_x + vv_bar_y) + p_bar_y - (1 / Re) * (v_bar_xx + v_bar_yy), zeros)
+    l4 = LOSS(u_bar_x + v_bar_y, zeros)
 
-    return l1 + l2 + l3
+    return l1, l2, l3, l4
 
     # print(gradients(p_bar, x))
 
@@ -167,13 +193,13 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1):
     #     print(kernel[2 + weight[0]][2 + weight[1]] * gradients(pp, x))
 
 
-t_star = numerical_data['t_data']  # T x 1
-x_star = numerical_data['x_data']  # N x 1
-y_star = numerical_data['y_data']  # N x 1
-U_star = numerical_data['U_data'][:, :, None]  # N x T
-V_star = numerical_data['V_data'][:, :, None]  # N x T
-P_star = numerical_data['P_data'][:, :, None]  # N x T
-C_star = numerical_data['C_data'][:, :, None]  # N x T
+t_star = numerical_data['t' + lab]  # T x 1, [0 -> 16]
+x_star = numerical_data['x' + lab]  # N x 1
+y_star = numerical_data['y' + lab]  # N x 1
+U_star = numerical_data['U' + lab][:, :, None]  # N x T
+V_star = numerical_data['V' + lab][:, :, None]  # N x T
+P_star = numerical_data['P' + lab][:, :, None]  # N x T
+C_star = numerical_data['C' + lab][:, :, None]  # N x T
 
 N, T = U_star.shape[0], U_star.shape[1]
 
@@ -201,7 +227,7 @@ dataloader = DataLoader(dataset=data,
 if __name__ == '__main__':
     xs_idx = [[1, 1, 1],
               [2, 2, 2],
-              [1, 1, 1],]
+              [1, 1, 1], ]
 
     weight_idx = [[i, j] for i in xs_idx for j in ys_idx]
 

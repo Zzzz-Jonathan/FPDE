@@ -12,16 +12,12 @@ np.random.shuffle(c_u_v_p)
 var_cuvp = np.var(c_u_v_p, axis=0)
 std_cuvp = noisy_rate * np.sqrt(var_cuvp)
 
-norm_size = int(len(t_x_y) / 10)
+norm_size = int(len(t_x_y) / 2)
 rare_size = int(len(t_x_y) * train_size_rate)
 
 rare_data = t_x_y[:rare_size]
 rare_label = c_u_v_p[:rare_size]
 noisy_rare_label = np.random.normal(rare_label, std_cuvp)
-
-norm_data = t_x_y[:norm_size]
-norm_label = c_u_v_p[:norm_size]
-noisy_norm_label = np.random.normal(norm_label, std_cuvp)
 
 validation_data = torch.FloatTensor(t_x_y[norm_size:norm_size + 10000]).to(device)
 validation_label = torch.FloatTensor(c_u_v_p[norm_size:norm_size + 10000]).to(device)
@@ -38,9 +34,9 @@ rare_dataloader = DataLoader(dataset=rare_dataset,
                              shuffle=True,
                              num_workers=0)
 
-noisy_norm_dataset = dataset(torch.FloatTensor(norm_data).requires_grad_(True).to(device),
-                             torch.FloatTensor(noisy_norm_label).to(device))
-noisy_norm_dataloader = DataLoader(dataset=noisy_norm_dataset,
+noisy_rare_dataset = dataset(torch.FloatTensor(rare_data).requires_grad_(True).to(device),
+                             torch.FloatTensor(noisy_rare_label).to(device))
+noisy_rare_dataloader = DataLoader(dataset=noisy_rare_dataset,
                                    batch_size=BATCH,
                                    shuffle=True,
                                    num_workers=0)

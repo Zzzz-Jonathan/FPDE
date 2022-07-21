@@ -19,8 +19,8 @@ if __name__ == '__main__':
     NN_les = Module(NN_SIZE).to(device)
     opt_les = torch.optim.Adam(params=NN_les.parameters())
 
-    # NN_ns = Module(NN_SIZE).to(device)
-    # opt_ns = torch.optim.Adam(params=NN_ns.parameters())
+    NN_ns = Module(NN_SIZE).to(device)
+    opt_ns = torch.optim.Adam(params=NN_ns.parameters())
 
     start_epoch = 0
 
@@ -43,37 +43,47 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, EPOCH):
         for t_x_y, num_solution in dataloader:
             opt_les.zero_grad()
-            # opt_ns.zero_grad()
+            opt_ns.zero_grad()
             iter += 1
 
-            index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
-            t_x_y_col = torch.index_select(collocation_points, 0, index)
+            # index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
+            # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
-            les_loss = loss_les(NN_les, t_x_y) + loss_les(NN_les, t_x_y_col)
+            les_loss_c, les_loss_u, les_loss_v, les_loss_p = loss_les(NN_les, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            les_loss = les_loss_c + les_loss_u + les_loss_v + les_loss_p
             data_loss_1 = loss_data(NN_les, t_x_y, num_solution)
 
-            # pde_loss = loss_pde(NN_ns, t_x_y)
-            # data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
+            pde_loss_c, pde_loss_u, pde_loss_v, pde_loss_p = loss_pde(NN_ns, t_x_y)
+            pde_loss = pde_loss_c + pde_loss_u + pde_loss_v + pde_loss_p
+            data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
             loss_1 = data_loss_1 + les_loss
-            # loss_2 = data_loss_2 + pde_loss
+            loss_2 = data_loss_2 + pde_loss
 
             validation_loss_1 = LOSS(NN_les(validation_data), validation_label)
-            # validation_loss_2 = LOSS(NN_ns(validation_data), validation_label)
+            validation_loss_2 = LOSS(NN_ns(validation_data), validation_label)
 
             writer.add_scalars('1_loss', {'train': loss_1,
                                           'validation': validation_loss_1,
                                           'data_loss': data_loss_1}, iter)
-            # writer.add_scalars('2_loss', {'train': loss_2,
-            #                               'validation': validation_loss_2,
-            #                               'data_loss': data_loss_2}, iter)
-            writer.add_scalar('les_loss', les_loss, iter)
-            # writer.add_scalar('pde_loss', pde_loss, iter)
+            writer.add_scalars('2_loss', {'train': loss_2,
+                                          'validation': validation_loss_2,
+                                          'data_loss': data_loss_2}, iter)
+            writer.add_scalars('les_loss', {'loss': les_loss,
+                                            'loss_c': les_loss_c,
+                                            'loss_u': les_loss_u,
+                                            'loss_v': les_loss_v,
+                                            'loss_p': les_loss_p}, iter)
+            writer.add_scalars('pde_loss', {'loss': pde_loss,
+                                            'loss_c': pde_loss_c,
+                                            'loss_u': pde_loss_u,
+                                            'loss_v': pde_loss_v,
+                                            'loss_p': pde_loss_p}, iter)
 
-            data_loss_1.backward()  # retain_graph=True
+            data_loss_1.backward(retain_graph=True)  #
             opt_les.step()
-            # loss_2.backward()
-            # opt_ns.step()
+            loss_2.backward()
+            opt_ns.step()
 
             if store and iter % 50 == 0:
                 state = {'model': NN_les.state_dict(),
@@ -81,11 +91,12 @@ if __name__ == '__main__':
                          'epoch': epoch}
                 torch.save(state, module_name + '_les_rec')
 
-            if loss_1.item() < min_loss_1:
-                min_loss_1 = loss_1.item()
+            if validation_loss_1.item() < min_loss_1:
+                min_loss_1 = validation_loss_1.item()
                 print('______Best loss model %.8f______' % loss_1.item())
                 print('LES loss is %.8f' % les_loss.item())
                 print('DATA loss is %.8f' % data_loss_1.item())
+                print('Validation loss is %.8f' % validation_loss_1.item())
                 # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
                 if store:
                     state = {'model': NN_les.state_dict(),
@@ -93,16 +104,17 @@ if __name__ == '__main__':
                              'epoch': epoch}
                     torch.save(state, module_name + '_les')
 
-            # if loss_2.item() < min_loss_2:
-            #     min_loss_2 = loss_2.item()
-            #     print('______Best loss model %.8f______' % loss_2.item())
-            #     print('PDE loss is %.8f' % pde_loss.item())
-            #     print('DATA loss is %.8f' % data_loss_2.item())
-            #     # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
-            #     if store:
-            #         state = {'model': NN_ns.state_dict(),
-            #                  'optimizer': opt_ns.state_dict(),
-            #                  'epoch': epoch}
-            #         torch.save(state, module_name + '_ns')
+            if validation_loss_2.item() < min_loss_2:
+                min_loss_2 = validation_loss_2.item()
+                print('______Best loss model %.8f______' % loss_2.item())
+                print('PDE loss is %.8f' % pde_loss.item())
+                print('DATA loss is %.8f' % data_loss_2.item())
+                print('Validation loss is %.8f' % validation_loss_2.item())
+                # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
+                if store:
+                    state = {'model': NN_ns.state_dict(),
+                             'optimizer': opt_ns.state_dict(),
+                             'epoch': epoch}
+                    torch.save(state, module_name + '_ns')
 
         print('------%d epoch------' % epoch)

@@ -7,8 +7,9 @@ Pe = 10 * Re
 BATCH = 256
 module_name = 'Cylinder_%d' % Re
 EPOCH = 10000
+ITERATION = 15000
 collocation_size = 2 ** 14
-train_size_rate = 1 / 5000
+train_size_rate = 1 / (2 ** 0)
 noisy_rate = 1
 
 LOSS = torch.nn.MSELoss().to(device)
