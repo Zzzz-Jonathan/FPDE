@@ -10,7 +10,7 @@ EPOCH = 10000
 ITERATION = 15000
 collocation_size = 2 ** 14
 train_size_rate = 1 / (2 ** 0)
-noisy_rate = 1
+noisy_rate = 2 / 4
 PICK = 0
 
 LOSS = torch.nn.MSELoss().to(device)

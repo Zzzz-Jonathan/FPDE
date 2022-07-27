@@ -4,7 +4,7 @@ from condition import loss_pde, loss_data, loss_les
 from data_num import rare_dataloader as dataloader, collocation_points
 from data_num import validation_data, validation_label
 from module import Module
-from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, collocation_size, BATCH
+from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, collocation_size, BATCH, ITERATION
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
@@ -138,3 +138,5 @@ if __name__ == '__main__':
                     torch.save(state, module_name + '_ns')
 
         print('------%d epoch------' % epoch)
+        if iter > ITERATION:
+            break

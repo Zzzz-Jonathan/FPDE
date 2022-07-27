@@ -86,7 +86,7 @@ if __name__ == '__main__':
         t_x_y[:, 1] = x
         t_x_y[:, 2] = y
 
-        iidx = 0
+        iidx = 3
         name = ['c', 'u', 'v', 'p'][iidx]
         c = [C_star, U_star, V_star, P_star][iidx]
 
@@ -101,14 +101,14 @@ if __name__ == '__main__':
 
         my_plot(x, y, c, name='noi_' + name)
 
-        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN1 = out[:, iidx]
-
-        my_plot(x, y, c_NN1, name='les_' + name)
-
-        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN2 = out[:, iidx]
-
-        my_plot(x, y, c_NN2, name='ns_' + name)
+        # out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN1 = out[:, iidx]
+        #
+        # my_plot(x, y, c_NN1, name='les_' + name)
+        #
+        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN2 = out[:, iidx]
+        #
+        # my_plot(x, y, c_NN2, name='ns_' + name)
 
         break
