@@ -2,7 +2,7 @@ import numpy as np
 import fluidfoam
 
 path = '/Users/jonathan/OpenFOAM/jonathan-v2206/run/cylinder3d_1'
-Re = 2 ** 10
+Re = 2 ** 2
 starttime = 1
 endtime = 3
 step = 2

@@ -219,12 +219,12 @@ c_u_v_p = np.concatenate((C_star, U_star, V_star, P_star), axis=2)
 t_x_y = t_x_y.reshape((N * T, 3))
 c_u_v_p = c_u_v_p.reshape(N * T, 4)
 
-data = dataset(torch.tensor(t_x_y).requires_grad_(True).type(torch.float32), torch.tensor(c_u_v_p).type(torch.float32))
-
-dataloader = DataLoader(dataset=data,
-                        batch_size=BATCH,
-                        shuffle=True,
-                        num_workers=0)
+# data = dataset(torch.tensor(t_x_y).requires_grad_(True).type(torch.float32), torch.tensor(c_u_v_p).type(torch.float32))
+#
+# dataloader = DataLoader(dataset=data,
+#                         batch_size=BATCH,
+#                         shuffle=True,
+#                         num_workers=0)
 
 if __name__ == '__main__':
     xs_idx = [[1, 1, 1],
