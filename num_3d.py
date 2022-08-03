@@ -1,11 +1,8 @@
-import numpy as np
 import torch
-from test_3d import my_plot
 from torch.utils.data import Dataset
 import numpy as np
 from torch.utils.data import DataLoader
-from parameter import size_3d_rate, LOSS, device
-from condition import gradients
+from parameter import size_3d_rate, LOSS, device, noisy_3d_rate, BATCH
 
 
 class dataset(Dataset):
@@ -18,6 +15,15 @@ class dataset(Dataset):
 
     def __getitem__(self, index):
         return self.data[index], self.target[index]
+
+
+def gradients(u, x, order=1):
+    if order == 1:
+        return torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u),
+                                   create_graph=True,
+                                   only_inputs=True, )[0]
+    else:
+        return gradients(gradients(u, x), x, order=order - 1)
 
 
 def gauss_kernel(size=5, sigma=1):
@@ -38,6 +44,7 @@ def loss_pde(nn, data_inp):
     data_inp = torch.cat([t, x, y, z, re], dim=1)
 
     out = nn(data_inp.to(device))
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
     [u, v, w, p] = torch.split(out, 1, dim=1)
     zeros = torch.zeros_like(u)
@@ -73,12 +80,26 @@ def loss_pde(nn, data_inp):
     v_zz = gradients(v_z, z)
     w_zz = gradients(w_z, z)
 
-    l1 = LOSS(u_t + (u * u_x + v * u_y + w * u_z) + p_x - (1.0 / re) * (u_xx + u_yy + u_zz), zeros)
-    l2 = LOSS(v_t + (u * v_x + v * v_y + w * v_z) + p_y - (1.0 / re) * (v_xx + v_yy + v_zz), zeros)
-    l3 = LOSS(w_t + (u * w_x + v * w_y + w * w_z) + p_z - (1.0 / re) * (w_xx + w_yy + w_zz), zeros)
+    l1 = LOSS(u_t + (u * u_x + v * u_y + w * u_z) + p_x - (10 / re) * (u_xx + u_yy + u_zz), zeros)
+    l2 = LOSS(v_t + (u * v_x + v * v_y + w * v_z) + p_y - (10 / re) * (v_xx + v_yy + v_zz), zeros)
+    l3 = LOSS(w_t + (u * w_x + v * w_y + w * w_z) + p_z - (10 / re) * (w_xx + w_yy + w_zz), zeros)
     l4 = LOSS(u_x + v_y + w_z, zeros)
 
     return l1, l2, l3, l4
+
+
+def loss_icbc(nn):
+    pass
+
+def loss_data(nn, data_inp, label):
+    out = nn(data_inp.to(device))
+
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    label = label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # [c_label, _, _, _] = torch.split(label, 1, dim=1)
+    # [c_out, _, _, _] = torch.split(out, 1, dim=1)
+
+    return LOSS(out, label)
 
 
 def loss_les(nn, data_inp, dx=0.1, dy=0.1, dz=0.1):
@@ -105,7 +126,9 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1, dz=0.1):
 
     for txy, weight in zip(txys, weights):
         out = nn(txy.to(device))
-        w = kernel[2 + weight[0]][2 + weight[1]][2 + weight[2]]
+        out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+
+        w = kernel[center + weight[0]][center + weight[1]][center + weight[2]]
         nn_outs.append(w * out)
         nn_uus.append(w * out[:, 0] * out[:, 0])
         nn_uvs.append(w * out[:, 0] * out[:, 1])
@@ -166,9 +189,12 @@ def loss_les(nn, data_inp, dx=0.1, dy=0.1, dz=0.1):
 
     zeros = torch.zeros_like(u_bar)
 
-    l1 = LOSS(u_bar_t + (uu_bar_x + uv_bar_y + uw_bar_z) + p_bar_x - (1.0 / re) * (u_bar_xx + u_bar_yy + u_bar_zz), zeros)
-    l2 = LOSS(v_bar_t + (uv_bar_x + vv_bar_y + vw_bar_z) + p_bar_y - (1.0 / re) * (v_bar_xx + v_bar_yy + v_bar_zz), zeros)
-    l3 = LOSS(w_bar_t + (uw_bar_x + vw_bar_y + ww_bar_z) + p_bar_z - (1.0 / re) * (w_bar_xx + w_bar_yy + w_bar_zz), zeros)
+    l1 = LOSS(u_bar_t + (uu_bar_x + uv_bar_y + uw_bar_z) + p_bar_x - (10 / re) * (u_bar_xx + u_bar_yy + u_bar_zz),
+              zeros)
+    l2 = LOSS(v_bar_t + (uv_bar_x + vv_bar_y + vw_bar_z) + p_bar_y - (10 / re) * (v_bar_xx + v_bar_yy + v_bar_zz),
+              zeros)
+    l3 = LOSS(w_bar_t + (uw_bar_x + vw_bar_y + ww_bar_z) + p_bar_z - (10 / re) * (w_bar_xx + w_bar_yy + w_bar_zz),
+              zeros)
     l4 = LOSS(u_bar_x + v_bar_y + w_bar_z, zeros)
 
     return l1, l2, l3, l4
@@ -225,14 +251,14 @@ def shuffle_clip(path, re, idx):
     train_data = txyz[:train_size]
     train_label = uvwp[:train_size]
 
-    validation_data = txyz[train_size:train_size + 2000]
-    validation_label = uvwp[train_size:train_size + 2000]
+    validation_data = txyz[train_size:train_size + 20000]
+    validation_label = uvwp[train_size:train_size + 20000]
 
     return train_data, train_label, validation_data, validation_label
 
 
 def load():
-    re_nums = [2, 4, 6, 8, 10, 12, 14]
+    re_nums = range(2, 15)
     train_label, train_data, validation_label, validation_data = [], [], [], []
     for i, num in enumerate(re_nums):
         path = 'data/re_expor/field_' + str(2 ** num) + '.npz'
@@ -256,29 +282,93 @@ def load():
     np.save('data/re_expor/validation_label.npy', validation_label)
 
 
-def norm_save(td, tl, vd, vl):
-    pass
+def noisy_save():
+    # td = np.load('data/re_expor/training_data.npy')
+    tl = np.load('data/re_expor/training_norm_label.npy')
+    # vd = np.load('data/re_expor/validation_data.npy')
+    # vl = np.load('data/re_expor/validation_label.npy')
+
+    var = np.var(tl, axis=0)
+    tl = np.random.normal(tl, np.sqrt(var) * noisy_3d_rate)
+
+    np.save('data/re_expor/training_noisy_norm_label.npy', tl)
 
 
-kernel = gauss_kernel()
-xs_idx = [0, 1, 1, 2, 2]
-ys_idx = [0, 1, 1, 2, 2]
-zs_idx = [0, 1, 1, 2, 2]
+def norm_save():
+    data = np.load('data/re_expor/training_data.npy')
+    label = np.load('data/re_expor/training_label.npy')
+
+    va_label = np.load('data/re_expor/validation_label.npy')
+    va_data = np.load('data/re_expor/validation_data.npy')
+
+    np_norm = np.concatenate((np.max(label, axis=0)[:, None], np.min(label, axis=0)[:, None]), axis=1)
+    label = (label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
+    va_label = (va_label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
+    # print(np.max(va_label, axis=0), np.min(va_label, axis=0))
+
+    np.save('data/re_expor/training_norm_label.npy', label)
+    np.save('data/re_expor/validation_norm_label.npy', va_label)
+    np.save('data/re_expor/norm_para.npy', np_norm)
+
+
+def my_shuffle(d, l, size):
+    rng_state = np.random.get_state()
+    np.random.shuffle(d)
+    np.random.set_state(rng_state)
+    np.random.shuffle(l)
+
+    return d[:size], l[:size]
+
+
+kernel = gauss_kernel(size=5)
+center = int(kernel.shape[0] / 2)
+xs_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
+ys_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
+zs_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
 weights = [[i, j, k] for i in xs_idx for j in ys_idx for k in zs_idx]
 
+t_data = np.load('data/re_expor/training_data.npy')
+t_n_label = np.load('data/re_expor/training_noisy_norm_label.npy')
+t_label = np.load('data/re_expor/training_norm_label.npy')
+v_data = np.load('data/re_expor/validation_data.npy')
+v_label = np.load('data/re_expor/validation_norm_label.npy')
+norm_para = torch.FloatTensor(np.load('data/re_expor/norm_para.npy')).to(device)
 
+# print(np.max(t_label, axis=0), np.min(t_label, axis=0))
+# print(np.var(t_label, axis=0), np.mean(t_label, axis=0))
+# m = np.mean(t_label, axis=0)
+# std = np.sqrt(np.var(t_label, axis=0))
+# a = (t_label - m) / std
+# print(np.max(a, axis=0), np.min(a, axis=0))
 
+validation_data = torch.FloatTensor(v_data).to(device)
+validation_label = torch.FloatTensor(v_label).to(device)
+
+noisy_dataset = dataset(torch.FloatTensor(t_data),
+                        torch.FloatTensor(t_n_label))
+noisy_dataloader = DataLoader(dataset=noisy_dataset,
+                              batch_size=BATCH,
+                              shuffle=True,
+                              num_workers=8)
+
+simple_dataset = dataset(torch.FloatTensor(t_data),
+                         torch.FloatTensor(t_label))
+simple_dataloader = DataLoader(dataset=simple_dataset,
+                               batch_size=BATCH,
+                               shuffle=True,
+                               num_workers=8)
 
 if __name__ == '__main__':
-    print(gauss_kernel())
+    noisy_save()
     # a = np.load('data/re_expor/training_data.npy')
-    # print(a.shape)
-    # c = np.load('data/re_expor/field_4096.npz')
-    # c = c['w']
+    # b = np.load('data/re_expor/training_noisy_label.npy')
+    # print(a.shape, b.shape)
+    # c = np.load('data/re_expor/field_16384.npz')
+    # c = c['u']
     #
     # d = np.load('data/re_expor/site.npz')
     # x, y, z = d['x'], d['y'], d['z']
     #
     # my_plot(x[:, 0], y[:, 0], z[:, 0], c[50, :, 0])
 
-    # load_label('data/re_expor/field_4.npz')
+    pass
