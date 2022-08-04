@@ -40,10 +40,14 @@ rare_dataloader_2 = DataLoader(dataset=rare_dataset,
 
 noisy_rare_dataset = dataset(torch.FloatTensor(rare_data),
                              torch.FloatTensor(noisy_rare_label))
-noisy_rare_dataloader = DataLoader(dataset=noisy_rare_dataset,
-                                   batch_size=BATCH,
-                                   shuffle=True,
-                                   num_workers=8)
+noisy_rare_dataloader_1 = DataLoader(dataset=noisy_rare_dataset,
+                                     batch_size=BATCH,
+                                     shuffle=True,
+                                     num_workers=8)
+noisy_rare_dataloader_2 = DataLoader(dataset=noisy_rare_dataset,
+                                     batch_size=25 * BATCH,
+                                     shuffle=True,
+                                     num_workers=8)
 
 if __name__ == '__main__':
     print(rare_data.shape)

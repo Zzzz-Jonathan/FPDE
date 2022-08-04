@@ -51,20 +51,22 @@ def scat(_x, _y, _z):
 
 if __name__ == '__main__':
     NN2 = Module(NN_SIZE)
-    module_name = 'Cylinder_200_les_ns'
+    module_name = 'train_history/sparse/8/ns/Cylinder'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
 
         NN2.load_state_dict(state['model'])
+        print('load success')
 
     NN1 = Module(NN_SIZE)
-    module_name = 'Cylinder_200_les_les'
+    module_name = 'train_history/sparse/8/les/Cylinder'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
 
         NN1.load_state_dict(state['model'])
+        print('load success')
 
     t_star = numerical_data['t' + lab]  # T x 1, [0 -> 16]
     x_star = numerical_data['x' + lab]  # N x 1
@@ -72,7 +74,7 @@ if __name__ == '__main__':
     U_star = numerical_data['U' + lab][:, :, None]  # N x T
     V_star = numerical_data['V' + lab][:, :, None]  # N x T
     P_star = numerical_data['P' + lab][:, :, None]  # N x T
-    C_star = numerical_data['C' + lab][:, :, None]  # N x T
+    # C_star = numerical_data['C' + lab][:, :, None]  # N x T
 
     N, T = U_star.shape[0], U_star.shape[1]
     x, y = x_star[:, 0], y_star[:, 0]
@@ -86,9 +88,9 @@ if __name__ == '__main__':
         t_x_y[:, 1] = x
         t_x_y[:, 2] = y
 
-        iidx = 3
-        name = ['c', 'u', 'v', 'p'][iidx]
-        c = [C_star, U_star, V_star, P_star][iidx]
+        iidx = 2
+        name = ['u', 'v', 'p'][iidx]
+        c = [U_star, V_star, P_star][iidx]
 
         x_y = np.concatenate((x_star, y_star), axis=1)
         var_c = np.var(c)
@@ -96,19 +98,19 @@ if __name__ == '__main__':
 
         my_plot(x, y, c, name='ori_' + name)
 
-        std_c = noisy_rate * np.sqrt(var_c)
-        c = np.random.normal(c, std_c)
+        # std_c = noisy_rate * np.sqrt(var_c)
+        # c = np.random.normal(c, std_c)
+        #
+        # my_plot(x, y, c, name='noi_' + name)
 
-        my_plot(x, y, c, name='noi_' + name)
+        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN1 = out[:, iidx]
 
-        # out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
-        # c_NN1 = out[:, iidx]
-        #
-        # my_plot(x, y, c_NN1, name='les_' + name)
-        #
-        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        # c_NN2 = out[:, iidx]
-        #
-        # my_plot(x, y, c_NN2, name='ns_' + name)
+        my_plot(x, y, c_NN1, name='les_' + name)
+
+        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN2 = out[:, iidx]
+
+        my_plot(x, y, c_NN2, name='ns_' + name)
 
         break

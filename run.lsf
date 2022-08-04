@@ -1,9 +1,11 @@
 #BSUB -q gpu
-#BSUB -J rare_2d_ns_0
+#BSUB -J noisy_2d_1
 #BSUB -o %J.out
 #BSUB -e %J.err
 #BSUB -R "select[hname='gpu04']"
-#BSUB -n 16
-#BSUB -R "span[ptile=15]"
+#BSUB -n 40
 
-python /work/mae-zhangds/taiyi_cylinder_flow/ns_2d.py
+module load python/anaconda3/5.2.0
+source activate my_env
+python /work/mae-zhangds/taiyi_cylinder_flow/les_noisy_2d.py &
+python /work/mae-zhangds/taiyi_cylinder_flow/ns_noisy_2d.py &

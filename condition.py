@@ -113,6 +113,16 @@ def loss_icbc(nn, size=3000):
     return LOSS(nn_icc, icc), LOSS(nn_bcc, bcc)
 
 
+def loss_collcation(nn, size, method):
+    np.random.shuffle(collcation_points)
+    points = torch.FloatTensor(collcation_points[:size]).requires_grad_(True).to(device)
+
+    if method == 'les':
+        return loss_les(nn, points)
+    elif method == 'ns':
+        return loss_pde(nn, points)
+
+
 def loss_les(nn, data_inp, dx=0.1, dy=0.1):
     [t, x, y] = torch.split(data_inp, 1, dim=1)
     # data_inp = torch.cat([t, x, y], dim=1)
@@ -243,9 +253,9 @@ u_v_p = u_v_p.reshape(N * T, 3)
 
 ic_t_x_y = t_x_y[t_x_y[:, 1] == x_min]
 ic_u_v_p = u_v_p[t_x_y[:, 1] == x_min]
-bc_t_x_y = np.array([[t, np.cos(i), np.sin(i)] for i in np.linspace(0, 2 * np.pi, 200) for t in np.linspace(0, 16, 200)])
-# print(ic_t_x_y[:1000, :2].shape)
+bc_t_x_y = np.array([[t, np.cos(i) / 2, np.sin(i) / 2] for i in np.linspace(0, 2 * np.pi, 200) for t in np.linspace(0, 16, 200)])
 
+collcation_points =np.array([[t, x, y] for t in np.arange(0, 16, 0.5) for x in np.arange(-2.5, 7.5, 0.4) for y in np.arange(-2.5, 2.5, 0.4)])
 # data = dataset(torch.tensor(t_x_y).requires_grad_(True).type(torch.float32), torch.tensor(c_u_v_p).type(torch.float32))
 #
 # dataloader = DataLoader(dataset=data,

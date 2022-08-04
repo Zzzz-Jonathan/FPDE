@@ -52,7 +52,7 @@ def residual_plot(ax, path, idx):
 
 
 def read_model(path):
-    NN = Module(NN_SIZE)
+    NN = Module([3] + 10 * [4 * 50] + [4])
 
     if os.path.exists(path):
         state = torch.load(path, map_location=torch.device('cpu'))
@@ -169,7 +169,10 @@ def sub_img(figure, loc):
 
 
 if __name__ == '__main__':
-    bar_lin('data.npz', ['1/' + str(2 ** i) for i in range(0, 17, 4)])
+    log = read_tensorboard('../train_history/sparse/0/ns/validation_loss_total')
+    a = np.array([[i.step, i.value] for i in log])
+    plt.plot(a[9000:9998, 0], a[9000:9998, 1])
+    plt.show()
     # path = 'history/sparse/'
     #
     # read_tbs(path)

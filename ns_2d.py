@@ -1,6 +1,6 @@
 import os
 import torch
-from condition import loss_pde, loss_data, loss_les, loss_icbc
+from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
 from data_num import rare_dataloader_2 as dataloader
 from data_num import validation_data, validation_label
 from module import Module
@@ -18,7 +18,7 @@ module_name = path + '/' + module_name
 if __name__ == '__main__':
     print(device)
     NN = Module(NN_SIZE).to(device)
-    opt = torch.optim.Adam(params=NN.parameters())
+    opt = torch.optim.Adam(params=NN.parameters(), lr=5e-3)
 
     start_epoch = 0
 
@@ -49,7 +49,8 @@ if __name__ == '__main__':
             # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
             loss_u, loss_v, loss_div = loss_pde(NN, t_x_y)  # + loss_les(NN_les, t_x_y_col)
-            pde_loss = loss_u + loss_v + loss_div
+            # c_loss_u, c_loss_v, c_loss_div = loss_collcation(NN, 25 * BATCH, 'ns')
+            pde_loss = loss_u + loss_v + loss_div  # + c_loss_u + c_loss_v + c_loss_div
 
             data_loss_1, data_loss_2 = loss_data(NN, t_x_y, num_solution)
             data_loss = data_loss_1 + data_loss_2
@@ -89,9 +90,10 @@ if __name__ == '__main__':
 
             writer.add_scalars('pde_loss', {'loss': pde_loss,
                                             # 'loss_c': les_loss_c,
-                                            'loss_u': loss_u,
-                                            'loss_v': loss_v,
-                                            'loss_p': loss_div}, iter)
+                                            'loss_u': loss_u,  # + c_loss_u,
+                                            'loss_v': loss_v,  # + c_loss_v,
+                                            'loss_div': loss_div,  # + c_loss_div
+                                            }, iter)
             # writer.add_scalars('pde_loss', {'loss': pde_loss,
             #                                 'loss_c': pde_loss_c,
             #                                 'loss_u': pde_loss_u,
