@@ -1,8 +1,8 @@
 import os
 import torch
 from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
-from data_num import noisy_rare_dataloader_1 as dataloader
-from data_num import validation_data, validation_label
+from num_2d import noisy_rare_dataloader_1 as dataloader
+from num_2d import validation_data, validation_label
 from module import Module
 from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, noisy_num, BATCH, ITERATION
 import numpy as np

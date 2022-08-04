@@ -94,8 +94,8 @@ if __name__ == '__main__':
     NN1 = Module(NN_SIZE_3D)
     module_name_1 = 'train_history/3d/' + 'Cylinder_3d_les_rec'
 
-    # NN1 = torch.nn.DataParallel(NN1)
-    # NN2 = torch.nn.DataParallel(NN2)
+    NN1 = torch.nn.DataParallel(NN1)
+    NN2 = torch.nn.DataParallel(NN2)
 
     if os.path.exists(module_name_2):
         state = torch.load(module_name_2, map_location=torch.device('cpu'))
@@ -109,13 +109,13 @@ if __name__ == '__main__':
         NN1.load_state_dict(state['model'])
         print('load success')
 
-    ref = np.load('data/re_expor/field_4096.npz')
+    ref = np.load('data/re_expor/field_16384.npz')
     u, v, w, p = ref['u'], ref['v'], ref['w'], ref['p']
     N, T = u.shape[1], u.shape[0]
 
     d = np.load('data/re_expor/site.npz')
     x, y, z = d['x'][:, 0], d['y'][:, 0], d['z'][:, 0]
-    re = np.log2(4)
+    re = np.log2(4096)
 
     t_x_y_z_re = np.zeros((N, 5))
     t_x_y_z_re[:, 1] = x
@@ -131,27 +131,27 @@ if __name__ == '__main__':
         t_x_y = np.copy(t_x_y_z_re)
         t_x_y[:, 0] = t
 
-        iidx = 0
-        # name = ['u', 'v', 'w', 'p'][iidx]
-        # c = [u, v, w, p][iidx]
-        # c = c[int(idx / 0.02) - 1][:, 0]
-        # var_c = np.var(c)
-        #
-        # my_plot(x, y, z, c)
+        iidx = 1
+        name = ['u', 'v', 'w', 'p'][iidx]
+        c = [u, v, w, p][iidx]
+        c = c[int(idx / 0.02) - 1][:, 0]
+        var_c = np.var(c)
+
+        my_plot(x, y, z, c)
 
         # std_c = noisy_3d_rate * np.sqrt(var_c)
         # c = np.random.normal(c, std_c)
         #
         # my_plot(x, y, z, c)
 
-        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN1 = out[:, iidx]
-
-        my_plot(x, y, z, c_NN1)
-
-        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN2 = out[:, iidx]
-
-        my_plot(x, y, z, c_NN2)
+        # out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN1 = out[:, iidx]
+        #
+        # my_plot(x, y, z, c_NN1)
+        #
+        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN2 = out[:, iidx]
+        #
+        # my_plot(x, y, z, c_NN2)
 
         break

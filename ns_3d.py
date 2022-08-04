@@ -1,7 +1,7 @@
 import os
 import torch
 from num_3d import loss_pde, loss_les, loss_data, loss_icbc
-from num_3d import noisy_dataloader_1 as dataloader, v_data, v_label, my_shuffle
+from num_3d import noisy_dataloader_2 as dataloader, v_data, v_label, my_shuffle
 from module import Module
 from parameter import NN_SIZE_3D, module_name, device, EPOCH, LOSS, BATCH_3d, ITERATION
 import numpy as np
@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 load = False
 store = True
 torch.manual_seed(3407)
-path = 'train_history/3d/les'
+path = 'train_history/3d/ns'
 module_name = path + '/' + module_name
 
 if __name__ == '__main__':
@@ -59,17 +59,13 @@ if __name__ == '__main__':
             # index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
             # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
-            loss_u, loss_v, loss_w, loss_div = loss_les(NN, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            loss_u, loss_v, loss_w, loss_div = loss_pde(NN, t_x_y)  # + loss_les(NN_les, t_x_y_col)
             pde_loss = loss_u + loss_v + loss_w + loss_div
 
             data_loss_1, data_loss_2 = loss_data(NN, t_x_y, num_solution)
             data_loss = data_loss_1 + data_loss_2
 
             icbc_loss = loss_icbc(NN)
-
-            # pde_loss_u, pde_loss_v, pde_loss_w, pde_loss_div = loss_pde(NN_ns, t_x_y)
-            # pde_loss = pde_loss_u + pde_loss_v + pde_loss_w + pde_loss_div
-            # data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
             loss = data_loss + pde_loss + icbc_loss
 
@@ -95,15 +91,10 @@ if __name__ == '__main__':
                                             'loss_v': loss_v,
                                             'loss_w': loss_w,
                                             'loss_div': loss_div}, iter)
-            # writer.add_scalars('pde_loss', {'loss': pde_loss,
-            #                                 'loss_u': pde_loss_u,
-            #                                 'loss_v': pde_loss_v,
-            #                                 'loss_w': pde_loss_w,
-            #                                 'loss_div': pde_loss_div}, iter)
 
             writer.add_scalars('validation_loss', {'total': validation_loss,
-                                                       'u': va_u, 'v': va_v,
-                                                       'w': va_w, 'p': va_p}, iter)
+                                                   'u': va_u, 'v': va_v,
+                                                   'w': va_w, 'p': va_p}, iter)
             # writer.add_scalars('ns_validation_loss', {'total': validation_loss_2,
             #                                           'u': ns_u, 'v': ns_v,
             #                                           'w': ns_w, 'p': ns_p}, iter)
@@ -126,8 +117,8 @@ if __name__ == '__main__':
 
             if validation_loss.item() < min_loss:
                 min_loss = validation_loss.item()
-                print('______Best LES loss model %.8f______' % loss.item())
-                print('LES loss is %.8f' % pde_loss.item())
+                print('______Best NS loss model %.8f______' % loss.item())
+                print('NS loss is %.8f' % pde_loss.item())
                 print('DATA loss is %.8f' % data_loss_1.item())
                 print('Validation loss is %.8f' % validation_loss.item())
                 # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])

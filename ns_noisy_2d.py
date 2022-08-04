@@ -1,8 +1,8 @@
 import os
 import torch
 from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
-from data_num import noisy_rare_dataloader_2 as dataloader
-from data_num import validation_data, validation_label
+from num_2d import noisy_rare_dataloader_2 as dataloader
+from num_2d import validation_data, validation_label
 from module import Module
 from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, noisy_num, BATCH, ITERATION
 import numpy as np
@@ -120,7 +120,7 @@ if __name__ == '__main__':
             if validation_loss.item() < min_loss:
                 min_loss = validation_loss.item()
                 print('______Best loss model %.8f______' % loss.item())
-                print('LES loss is %.8f' % pde_loss.item())
+                print('NS loss is %.8f' % pde_loss.item())
                 print('DATA loss is %.8f' % data_loss_1.item())
                 print('Validation loss is %.8f' % validation_loss.item())
                 # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])

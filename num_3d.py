@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 from torch.utils.data import DataLoader
-from parameter import size_3d_rate, LOSS, device, noisy_3d_rate, BATCH
+from parameter import size_3d_rate, LOSS, device, noisy_3d_rate, BATCH_3d
 
 
 class dataset(Dataset):
@@ -42,6 +42,7 @@ def gauss_kernel(size=5, sigma=1):
 def loss_pde(nn, data_inp):
     [t, x, y, z, re] = torch.split(data_inp, 1, dim=1)
     data_inp = torch.cat([t, x, y, z, re], dim=1)
+    re = 2 ** re
 
     out = nn(data_inp.to(device))
     out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
@@ -88,8 +89,39 @@ def loss_pde(nn, data_inp):
     return l1, l2, l3, l4
 
 
-def loss_icbc(nn):
-    pass
+def loss_icbc(nn, size=3000):
+    np.random.shuffle(ic_v)
+    ic_v_t = torch.FloatTensor(ic_v[:size]).to(device)
+    ic_v_out = nn(ic_v_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    ic_v_out = ic_v_out[:, :3]
+    ic_v_l = torch.FloatTensor([10, 0, 0]) * torch.ones_like(ic_v_out).to(device)
+
+    np.random.shuffle(bc_c)
+    bc_c_t = torch.FloatTensor(bc_c[:size]).to(device)
+    bc_c_out = nn(bc_c_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    bc_c_out = bc_c_out[:, :3]
+    bc_c_l = torch.zeros_like(bc_c_out)
+
+    bc_top_t, bc_btm_t = my_shuffle(bc_top, bc_btm, size)
+    out_top = nn(torch.FloatTensor(bc_top_t).to(device))
+    out_top = out_top * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    out_top = out_top[:, :3]
+
+    out_btm = nn(torch.FloatTensor(bc_btm_t).to(device))
+    out_btm = out_btm * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    out_btm = out_btm[:, :3]
+
+    bc_fot_t, bc_bak_t = my_shuffle(bc_fot, bc_bak, size)
+    out_fot = nn(torch.FloatTensor(bc_fot_t).to(device))
+    out_fot = out_fot * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    out_fot = out_fot[:, :3]
+
+    out_bak = nn(torch.FloatTensor(bc_bak_t).to(device))
+    out_bak = out_bak * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    out_bak = out_bak[:, :3]
+
+    return LOSS(ic_v_l, ic_v_out) + LOSS(bc_c_l, bc_c_out) + LOSS(out_top, out_btm) + LOSS(out_bak, out_fot)
+
 
 def loss_data(nn, data_inp, label):
     out = nn(data_inp.to(device))
@@ -98,12 +130,15 @@ def loss_data(nn, data_inp, label):
     label = label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
     # [c_label, _, _, _] = torch.split(label, 1, dim=1)
     # [c_out, _, _, _] = torch.split(out, 1, dim=1)
+    # print(out.std(axis=0), label.std(axis=0), LOSS(out.std(axis=0), label.std(axis=0)))
 
-    return LOSS(out, label)
+    return LOSS(out, label), LOSS(out.std(axis=0), label.std(axis=0))
 
 
-def loss_les(nn, data_inp, dx=0.1, dy=0.1, dz=0.1):
+def loss_les(nn, data_inp, dx=0.05, dy=0.05, dz=0.05):
     [t, x, y, z, re] = torch.split(data_inp, 1, dim=1)
+
+    re = 2 ** re
 
     xxs = [x, x + dx, x - dx, x + 2 * dx, x - 2 * dx]
     yys = [y, y + dy, y - dy, y + 2 * dy, y - 2 * dy]
@@ -311,6 +346,42 @@ def norm_save():
     np.save('data/re_expor/norm_para.npy', np_norm)
 
 
+def icbc_data_save():
+    x_min = -3.5
+    y_min, y_max = 0, 5
+    z_min, z_max = -2.5, 2.5
+
+    ic_data = np.array([[t, x_min, y, z, re] for t in np.arange(0, 2.3, 0.2)
+                        for y in np.arange(-0.5, 5.6, 0.5)
+                        for z in np.arange(-3, 3.1, 0.5)
+                        for re in np.arange(1, 15, 0.5)])
+
+    bc_data_c = np.array([[t, (np.cos(i) / 2) - 1, y, np.sin(i) / 2, re] for t in np.arange(0, 2.3, 0.2)
+                          for i in np.linspace(0, 2 * np.pi, 16)
+                          for y in np.arange(-0.5, 5.6, 0.5)
+                          for re in np.arange(1, 15, 0.5)])
+
+    bc_data_top = np.array([[t, x, y_max, z, re] for t in np.arange(0, 2.3, 0.2)
+                            for x in np.arange(-4, 5.6, 0.5)
+                            for z in np.arange(-3, 3.1, 0.5)
+                            for re in np.arange(1, 15, 0.5)])
+    bc_data_btm = np.copy(bc_data_top)
+    bc_data_btm[:, 2] = y_min
+
+    bc_data_fot = np.array([[t, x, y, z_max, re] for t in np.arange(0, 2.3, 0.2)
+                            for x in np.arange(-4, 5.6, 0.5)
+                            for y in np.arange(-0.5, 5.6, 0.5)
+                            for re in np.arange(1, 15, 0.5)])
+    bc_data_bak = np.copy(bc_data_fot)
+    bc_data_bak[:, 3] = z_min
+
+    print(ic_data.shape, bc_data_c.shape, bc_data_bak.shape)
+
+    np.savez('data/re_expor/icbc.npz', ic_data=ic_data, bc_data_c=bc_data_c,
+             bc_data_top=bc_data_top, bc_data_btm=bc_data_btm,
+             bc_data_fot=bc_data_fot, bc_data_bak=bc_data_bak)
+
+
 def my_shuffle(d, l, size):
     rng_state = np.random.get_state()
     np.random.shuffle(d)
@@ -320,7 +391,7 @@ def my_shuffle(d, l, size):
     return d[:size], l[:size]
 
 
-kernel = gauss_kernel(size=5)
+kernel = gauss_kernel(size=3)
 center = int(kernel.shape[0] / 2)
 xs_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
 ys_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
@@ -328,38 +399,49 @@ zs_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
 weights = [[i, j, k] for i in xs_idx for j in ys_idx for k in zs_idx]
 
 t_data = np.load('data/re_expor/training_data.npy')
+# [-3.5 -> 5] [0 -> 5] [-2.5 -> 2.5]
+# [-1 0 5] r = 1
 t_n_label = np.load('data/re_expor/training_noisy_norm_label.npy')
 t_label = np.load('data/re_expor/training_norm_label.npy')
 v_data = np.load('data/re_expor/validation_data.npy')
 v_label = np.load('data/re_expor/validation_norm_label.npy')
 norm_para = torch.FloatTensor(np.load('data/re_expor/norm_para.npy')).to(device)
 
-# print(np.max(t_label, axis=0), np.min(t_label, axis=0))
-# print(np.var(t_label, axis=0), np.mean(t_label, axis=0))
-# m = np.mean(t_label, axis=0)
-# std = np.sqrt(np.var(t_label, axis=0))
-# a = (t_label - m) / std
-# print(np.max(a, axis=0), np.min(a, axis=0))
+icbc_data = np.load('data/re_expor/icbc.npz')
+ic_v = icbc_data['ic_data']
+bc_c = icbc_data['bc_data_c']
+bc_top = icbc_data['bc_data_top']
+bc_btm = icbc_data['bc_data_btm']
+bc_fot = icbc_data['bc_data_fot']
+bc_bak = icbc_data['bc_data_bak']
 
-validation_data = torch.FloatTensor(v_data).to(device)
-validation_label = torch.FloatTensor(v_label).to(device)
+# validation_data = torch.FloatTensor(v_data).to(device)
+# validation_label = torch.FloatTensor(v_label).to(device)
 
 noisy_dataset = dataset(torch.FloatTensor(t_data),
                         torch.FloatTensor(t_n_label))
-noisy_dataloader = DataLoader(dataset=noisy_dataset,
-                              batch_size=BATCH,
-                              shuffle=True,
-                              num_workers=8)
+noisy_dataloader_1 = DataLoader(dataset=noisy_dataset,
+                                batch_size=BATCH_3d,
+                                shuffle=True,
+                                num_workers=8)
+noisy_dataloader_2 = DataLoader(dataset=noisy_dataset,
+                                batch_size=25 * BATCH_3d,
+                                shuffle=True,
+                                num_workers=8)
 
-simple_dataset = dataset(torch.FloatTensor(t_data),
-                         torch.FloatTensor(t_label))
-simple_dataloader = DataLoader(dataset=simple_dataset,
-                               batch_size=BATCH,
-                               shuffle=True,
-                               num_workers=8)
+# simple_dataset = dataset(torch.FloatTensor(t_data),
+#                          torch.FloatTensor(t_label))
+# simple_dataloader_1 = DataLoader(dataset=simple_dataset,
+#                                  batch_size=BATCH_3d,
+#                                  shuffle=True,
+#                                  num_workers=8)
+# simple_dataloader_2 = DataLoader(dataset=simple_dataset,
+#                                  batch_size=25 * BATCH_3d,
+#                                  shuffle=True,
+#                                  num_workers=8)
 
 if __name__ == '__main__':
-    noisy_save()
+    icbc_data_save()
     # a = np.load('data/re_expor/training_data.npy')
     # b = np.load('data/re_expor/training_noisy_label.npy')
     # print(a.shape, b.shape)
