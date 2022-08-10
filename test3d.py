@@ -89,13 +89,13 @@ mesh3D = go.Mesh3d(
 
 if __name__ == '__main__':
     NN2 = Module(NN_SIZE_3D)
-    module_name_2 = 'train_history/3d/' + 'Cylinder_3d_ns_rec'
+    module_name_2 = '/Users/jonathan/Downloads/train_history/3d/les/Cylinder'  # 'train_history/_3d/' + 'Cylinder_3d_ns_rec'
 
     NN1 = Module(NN_SIZE_3D)
-    module_name_1 = 'train_history/3d/' + 'Cylinder_3d_les_rec'
+    module_name_1 = '/Users/jonathan/Downloads/train_history/3d/ns/Cylinder'  # 'train_history/_3d/' + 'Cylinder_3d_les_rec'
 
-    NN1 = torch.nn.DataParallel(NN1)
-    NN2 = torch.nn.DataParallel(NN2)
+    # NN1 = torch.nn.DataParallel(NN1)
+    # NN2 = torch.nn.DataParallel(NN2)
 
     if os.path.exists(module_name_2):
         state = torch.load(module_name_2, map_location=torch.device('cpu'))
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     d = np.load('data/re_expor/site.npz')
     x, y, z = d['x'][:, 0], d['y'][:, 0], d['z'][:, 0]
-    re = np.log2(4096)
+    re = np.log2(16384)
 
     t_x_y_z_re = np.zeros((N, 5))
     t_x_y_z_re[:, 1] = x
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         t_x_y = np.copy(t_x_y_z_re)
         t_x_y[:, 0] = t
 
-        iidx = 1
+        iidx = 0
         name = ['u', 'v', 'w', 'p'][iidx]
         c = [u, v, w, p][iidx]
         c = c[int(idx / 0.02) - 1][:, 0]
@@ -144,14 +144,14 @@ if __name__ == '__main__':
         #
         # my_plot(x, y, z, c)
 
-        # out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
-        # c_NN1 = out[:, iidx]
-        #
-        # my_plot(x, y, z, c_NN1)
-        #
-        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        # c_NN2 = out[:, iidx]
-        #
-        # my_plot(x, y, z, c_NN2)
+        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN1 = out[:, iidx]
+
+        my_plot(x, y, z, c_NN1)
+
+        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        c_NN2 = out[:, iidx]
+
+        my_plot(x, y, z, c_NN2)
 
         break

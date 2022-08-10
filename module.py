@@ -29,6 +29,61 @@ class Module(torch.nn.Module):
         return self.net(x)
 
 
+class ResBlock(torch.nn.Module):
+    def __init__(self, size=20):
+        super(ResBlock, self).__init__()
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(size, size),
+            active_fun(),
+            torch.nn.Linear(size, size),
+            active_fun(),
+            torch.nn.Linear(size, size),
+            active_fun()
+        )
+        self.lin = torch.nn.Sequential(
+            torch.nn.Linear(size, size),
+            active_fun()
+        )
+
+    def forward(self, x):
+        out1 = self.net(x)
+        out2 = self.lin(x)
+        return out1 + out2
+
+
+class ResLinear(torch.nn.Module):
+    def __init__(self, shape=None, block=ResBlock):
+        super(ResLinear, self).__init__()
+        if shape is None:
+            self.shape = [4, 20, 4]
+        else:
+            self.shape = shape
+
+        self.block = block
+        self.front = torch.nn.Linear(self.shape[0], self.shape[1])
+        self.back = torch.nn.Linear(self.shape[1], self.shape[2])
+
+        self.net1 = self.add_blocks(16)
+        self.net2 = self.add_blocks(4)
+        self.net3 = self.add_blocks(1)
+
+    def add_blocks(self, length):
+        blocks = []
+        for i in range(length):
+            blocks.append(self.block(self.shape[1]))
+
+        return torch.nn.Sequential(*blocks)
+
+    def forward(self, x):
+        x = self.front(x)
+
+        x1 = self.net1(x)
+        x2 = self.net2(x)
+        x3 = self.net3(x)
+
+        return self.back(x1 + x2 + x3)
+
+
 if __name__ == '__main__':
-    NN = Module(NN_SIZE)
-    print(NN.net)
+    NN = ResLinear(ResBlock)
+    print(NN)

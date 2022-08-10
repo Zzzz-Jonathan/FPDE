@@ -1,11 +1,10 @@
 #BSUB -q gpu
-#BSUB -J noisy_2d_1
+#BSUB -J les_4d
 #BSUB -o %J.out
 #BSUB -e %J.err
-#BSUB -R "select[hname='gpu04']"
-#BSUB -n 40
+#BSUB -R "select[hname='gpu01']"
+#BSUB -n 20
 
 module load python/anaconda3/5.2.0
 source activate my_env
-python /work/mae-zhangds/taiyi_cylinder_flow/les_noisy_2d.py &
-python /work/mae-zhangds/taiyi_cylinder_flow/ns_noisy_2d.py &
+python /work/mae-zhangds/taiyi_cylinder_flow/les_4d.py

@@ -1,8 +1,8 @@
 import os
 import torch
 from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
-from num_2d import noisy_rare_dataloader_2 as dataloader
-from num_2d import validation_data, validation_label
+from num_3d import noisy_rare_dataloader_1 as dataloader
+from num_3d import validation_data, validation_label
 from module import Module
 from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, noisy_num, BATCH, ITERATION
 import numpy as np
@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 load = False
 store = True
 torch.manual_seed(3407)
-path = 'train_history/noisy/' + str(noisy_num) + '/ns'
+path = 'train_history/noisy/' + str(noisy_num) + '/les'
 module_name = path + '/' + module_name
 
 if __name__ == '__main__':
@@ -48,8 +48,8 @@ if __name__ == '__main__':
             # index = torch.LongTensor(np.random.choice(collocation_size, BATCH, replace=False))
             # t_x_y_col = torch.index_select(collocation_points, 0, index)
 
-            loss_u, loss_v, loss_div = loss_pde(NN, t_x_y)  # + loss_les(NN_les, t_x_y_col)
-            # c_loss_u, c_loss_v, c_loss_div = loss_collcation(NN, 25 * BATCH, 'ns')
+            loss_u, loss_v, loss_div = loss_les(NN, t_x_y)  # + loss_les(NN_les, t_x_y_col)
+            # c_loss_u, c_loss_v, c_loss_div = loss_collcation(NN, BATCH, 'les')
             pde_loss = loss_u + loss_v + loss_div  # + c_loss_u + c_loss_v + c_loss_div
 
             data_loss_1, data_loss_2 = loss_data(NN, t_x_y, num_solution)
@@ -120,7 +120,7 @@ if __name__ == '__main__':
             if validation_loss.item() < min_loss:
                 min_loss = validation_loss.item()
                 print('______Best loss model %.8f______' % loss.item())
-                print('NS loss is %.8f' % pde_loss.item())
+                print('LES loss is %.8f' % pde_loss.item())
                 print('DATA loss is %.8f' % data_loss_1.item())
                 print('Validation loss is %.8f' % validation_loss.item())
                 # print('***** Lr = %.8f *****' % opt.state_dict()['param_groups'][0]['lr'])
