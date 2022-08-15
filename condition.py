@@ -250,12 +250,15 @@ x_min = x_star.min()
 
 t_x_y = t_x_y.reshape((N * T, 3))
 u_v_p = u_v_p.reshape(N * T, 3)
+# print(t_x_y.shape)
 
 ic_t_x_y = t_x_y[t_x_y[:, 1] == x_min]
 ic_u_v_p = u_v_p[t_x_y[:, 1] == x_min]
-bc_t_x_y = np.array([[t, np.cos(i) / 2, np.sin(i) / 2] for i in np.linspace(0, 2 * np.pi, 200) for t in np.linspace(0, 16, 200)])
+bc_t_x_y = np.array(
+    [[t, np.cos(i) / 2, np.sin(i) / 2] for i in np.linspace(0, 2 * np.pi, 200) for t in np.linspace(0, 16, 200)])
 
-collcation_points =np.array([[t, x, y] for t in np.arange(0, 16, 0.5) for x in np.arange(-2.5, 7.5, 0.4) for y in np.arange(-2.5, 2.5, 0.4)])
+collcation_points = np.array(
+    [[t, x, y] for t in np.arange(0, 16, 0.5) for x in np.arange(-2.5, 7.5, 0.4) for y in np.arange(-2.5, 2.5, 0.4)])
 # data = dataset(torch.tensor(t_x_y).requires_grad_(True).type(torch.float32), torch.tensor(c_u_v_p).type(torch.float32))
 #
 # dataloader = DataLoader(dataset=data,

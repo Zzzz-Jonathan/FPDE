@@ -24,7 +24,7 @@ def loss_pde(nn, data_inp):
     re = 2 ** re
 
     out = nn(data_inp.to(device))
-    # out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
     [u, v, w, p] = torch.split(out, 1, dim=1)
     zeros = torch.zeros_like(u)
@@ -71,33 +71,33 @@ def loss_pde(nn, data_inp):
 def loss_icbc(nn, size=3000):
     np.random.shuffle(ic_v)
     ic_v_t = torch.FloatTensor(ic_v[:size]).to(device)
-    # ic_v_out = nn(ic_v_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    ic_v_out = nn(ic_v_t)[:, :3]
+    ic_v_out = nn(ic_v_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    ic_v_out = ic_v_out[:, :3]
     ic_v_l = torch.FloatTensor([10, 0, 0]).to(device) * torch.ones_like(ic_v_out).to(device)
 
     np.random.shuffle(bc_c)
     bc_c_t = torch.FloatTensor(bc_c[:size]).to(device)
-    # bc_c_out = nn(bc_c_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    bc_c_out = nn(bc_c_t)[:, :3]
+    bc_c_out = nn(bc_c_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    bc_c_out = bc_c_out[:, :3]
     bc_c_l = torch.zeros_like(bc_c_out).to(device)
 
     bc_top_t, bc_btm_t = my_shuffle(bc_top, bc_btm, size)
     out_top = nn(torch.FloatTensor(bc_top_t).to(device))
-    # out_top = out_top * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    out_top = out_top[:, :3]
+    out_top = out_top * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_top = out_top[:, :3]
 
     out_btm = nn(torch.FloatTensor(bc_btm_t).to(device))
-    # out_btm = out_btm * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    out_btm = out_btm[:, :3]
+    out_btm = out_btm * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_btm = out_btm[:, :3]
 
     bc_fot_t, bc_bak_t = my_shuffle(bc_fot, bc_bak, size)
     out_fot = nn(torch.FloatTensor(bc_fot_t).to(device))
-    # out_fot = out_fot * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    out_fot = out_fot[:, :3]
+    out_fot = out_fot * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_fot = out_fot[:, :3]
 
     out_bak = nn(torch.FloatTensor(bc_bak_t).to(device))
-    # out_bak = out_bak * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    out_bak = out_bak[:, :3]
+    out_bak = out_bak * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_bak = out_bak[:, :3]
 
     return LOSS(ic_v_l, ic_v_out) + LOSS(bc_c_l, bc_c_out) + LOSS(out_top, out_btm) + LOSS(out_bak, out_fot)
 
@@ -105,11 +105,8 @@ def loss_icbc(nn, size=3000):
 def loss_data(nn, data_inp, label):
     out = nn(data_inp.to(device))
 
-    # out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    # label = label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
-    # [c_label, _, _, _] = torch.split(label, 1, dim=1)
-    # [c_out, _, _, _] = torch.split(out, 1, dim=1)
-    # print(out.std(axis=0), label.std(axis=0), LOSS(out.std(axis=0), label.std(axis=0)))
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    label = label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
     return LOSS(out, label), LOSS(out.std(axis=0), label.std(axis=0))
 
@@ -140,7 +137,7 @@ def loss_les(nn, data_inp, dx=0.05, dy=0.05, dz=0.05):
 
     for txy, weight in zip(txys, weights):
         out = nn(txy.to(device))
-        # out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+        out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
         w = kernel[center + weight[0]][center + weight[1]][center + weight[2]]
         nn_outs.append(w * out)
@@ -380,11 +377,11 @@ weights = [[i, j, k] for i in xs_idx for j in ys_idx for k in zs_idx]
 t_data = np.load('data/re_expor/5d/training_data.npy')
 # [-3.5 -> 5] [0 -> 5] [-2.5 -> 2.5]
 # [-1 0 5] r = 1
-t_n_label = np.load('data/re_expor/5d/training_noisy_label.npy')
-t_label = np.load('data/re_expor/5d/training_label.npy')
+t_n_label = np.load('data/re_expor/5d/training_noisy_norm_label.npy')
+# t_label = np.load('data/re_expor/5d/training_label.npy')
 v_data = np.load('data/re_expor/5d/validation_data.npy')
-v_label = np.load('data/re_expor/5d/validation_label.npy')
-# norm_para = torch.FloatTensor(np.load('data/re_expor/5d/norm_para.npy')).to(device)
+v_label = np.load('data/re_expor/5d/validation_norm_label.npy')
+norm_para = torch.FloatTensor(np.load('data/re_expor/5d/norm_para.npy')).to(device)
 
 icbc_data = np.load('data/re_expor/5d/icbc.npz')
 ic_v = icbc_data['ic_data']

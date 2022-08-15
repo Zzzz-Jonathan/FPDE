@@ -4,7 +4,7 @@ from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
 from num_3d import noisy_rare_dataloader_2 as dataloader
 from num_3d import validation_data, validation_label
 from module import Module
-from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, noisy_num, BATCH, ITERATION
+from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, noisy_num, LR, ITERATION
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
@@ -18,7 +18,7 @@ module_name = path + '/' + module_name
 if __name__ == '__main__':
     print(device)
     NN = Module(NN_SIZE).to(device)
-    opt = torch.optim.Adam(params=NN.parameters(), lr=5e-3)
+    opt = torch.optim.Adam(params=NN.parameters(), lr=LR)
 
     start_epoch = 0
 

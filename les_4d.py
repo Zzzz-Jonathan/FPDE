@@ -3,13 +3,13 @@ import torch
 from num_4d import loss_pde, loss_les, loss_data, loss_icbc
 from num_4d import dataloader_1 as dataloader, v_data, v_label, my_shuffle
 from module import ResLinear
-from parameter import module_name, device, EPOCH, LOSS, ITERATION, LR
+from parameter import module_name, device, EPOCH, LOSS, ITERATION, LR, Re_4d as RE
 from torch.utils.tensorboard import SummaryWriter
 
 load = False
 store = True
 torch.manual_seed(3407)
-path = 'train_history/4d/les'
+path = 'train_history/4d/' + str(RE) + '/les'
 module_name = path + '/' + module_name
 
 if __name__ == '__main__':

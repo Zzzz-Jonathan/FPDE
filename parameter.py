@@ -24,7 +24,7 @@ def gradients(u, x, order=1):
         return gradients(gradients(u, x), x, order=order - 1)
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 NN_SIZE = [3] + 5 * [2 * 50] + [3]
 NN_SIZE_3D = [5] + 5 * [2 * 50] + [4]
@@ -35,20 +35,20 @@ BATCH = 128
 module_name = 'Cylinder'
 
 EPOCH = 50000
-ITERATION = 50000
+ITERATION = 10000
 LR = 5e-3
 
 collocation_size = 2 ** 14
-sparse_num = 10
+sparse_num = 6
 train_size_rate = 1 / (2 ** sparse_num)
 noisy_num = 6
 noisy_rate = noisy_num / 4
 PICK = 0
 
-BATCH_3d = 512
+BATCH_3d = 256
 size_3d_rate = [1 / i for i in range(10, 100, 2)]
 noisy_3d_rate = 1 / 2
 
-Re_4d = 16384
+Re_4d = 4096
 
 LOSS = torch.nn.MSELoss().to(device)

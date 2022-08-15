@@ -4,7 +4,7 @@ from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
 from num_3d import rare_dataloader_2 as dataloader
 from num_3d import validation_data, validation_label
 from module import Module
-from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, sparse_num, BATCH, ITERATION
+from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, sparse_num, LR, ITERATION
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
@@ -12,13 +12,14 @@ from torch.utils.tensorboard import SummaryWriter
 load = False
 store = True
 torch.manual_seed(3407)
+sparse_num = 'pure'
 path = 'train_history/sparse/' + str(sparse_num) + '/ns'
 module_name = path + '/' + module_name
 
 if __name__ == '__main__':
     print(device)
     NN = Module(NN_SIZE).to(device)
-    opt = torch.optim.Adam(params=NN.parameters(), lr=5e-3)
+    opt = torch.optim.SGD(params=NN.parameters(), lr=5e-2)
 
     start_epoch = 0
 
@@ -62,7 +63,7 @@ if __name__ == '__main__':
             # pde_loss = pde_loss_c + pde_loss_u + pde_loss_v + pde_loss_div
             # data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
-            loss = data_loss + pde_loss + icbc_loss
+            loss = pde_loss + icbc_loss
             # loss_2 = data_loss_2 + pde_loss
 
             validation_out = NN(validation_data)

@@ -3,7 +3,7 @@ import torch
 from num_5d import loss_pde, loss_les, loss_data, loss_icbc
 from num_5d import noisy_dataloader_1 as dataloader, v_data, v_label, my_shuffle
 from module import ResLinear
-from parameter import NN_SIZE_3D, module_name, device, EPOCH, LOSS, BATCH_3d, ITERATION
+from parameter import NN_SIZE_3D, module_name, device, EPOCH, LOSS, LR, ITERATION
 from torch.utils.tensorboard import SummaryWriter
 
 load = False
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     NN.to(device)
 
-    opt = torch.optim.Adam(params=NN.parameters(), lr=5e-3)
+    opt = torch.optim.Adam(params=NN.parameters(), lr=LR)
     # opt_ns = torch.optim.Adam(params=NN_ns.parameters(), lr=5e-3)
 
     start_epoch = 0

@@ -9,6 +9,9 @@ from parameter import Re_4d as RE
 def loss_data(nn, data_inp, label):
     out = nn(data_inp.to(device))
 
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    label = label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+
     return LOSS(out, label), LOSS(out.std(axis=0), label.std(axis=0))
 
 
@@ -17,6 +20,7 @@ def loss_pde(nn, data_inp):
     data_inp = torch.cat([t, x, y, z], dim=1)
 
     out = nn(data_inp.to(device))
+    out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
     [u, v, w, p] = torch.split(out, 1, dim=1)
     zeros = torch.zeros_like(u)
@@ -84,6 +88,7 @@ def loss_les(nn, data_inp, dx=0.05, dy=0.05, dz=0.05):
 
     for txy, weight in zip(txys, weights):
         out = nn(txy.to(device))
+        out = out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
         w = kernel[center + weight[0]][center + weight[1]][center + weight[2]]
         nn_outs.append(w * out)
@@ -160,27 +165,33 @@ def loss_les(nn, data_inp, dx=0.05, dy=0.05, dz=0.05):
 def loss_icbc(nn, size=3000):
     np.random.shuffle(ic_v)
     ic_v_t = torch.FloatTensor(ic_v[:size]).to(device)
-    ic_v_out = nn(ic_v_t)[:, :3]
+    ic_v_out = nn(ic_v_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    ic_v_out = ic_v_out[:, :3]
     ic_v_l = torch.FloatTensor([10, 0, 0]).to(device) * torch.ones_like(ic_v_out).to(device)
 
     np.random.shuffle(bc_c)
     bc_c_t = torch.FloatTensor(bc_c[:size]).to(device)
-    bc_c_out = nn(bc_c_t)[:, :3]
+    bc_c_out = nn(bc_c_t) * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    bc_c_out = bc_c_out[:, :3]
     bc_c_l = torch.zeros_like(bc_c_out).to(device)
 
     bc_top_t, bc_btm_t = my_shuffle(bc_top, bc_btm, size)
     out_top = nn(torch.FloatTensor(bc_top_t).to(device))
-    out_top = out_top[:, :3]
+    out_top = out_top * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_top = out_top[:, :3]
 
     out_btm = nn(torch.FloatTensor(bc_btm_t).to(device))
-    out_btm = out_btm[:, :3]
+    out_btm = out_btm * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_btm = out_btm[:, :3]
 
     bc_fot_t, bc_bak_t = my_shuffle(bc_fot, bc_bak, size)
     out_fot = nn(torch.FloatTensor(bc_fot_t).to(device))
-    out_fot = out_fot[:, :3]
+    out_fot = out_fot * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_fot = out_fot[:, :3]
 
     out_bak = nn(torch.FloatTensor(bc_bak_t).to(device))
-    out_bak = out_bak[:, :3]
+    out_bak = out_bak * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
+    # out_bak = out_bak[:, :3]
 
     return LOSS(ic_v_l, ic_v_out) + LOSS(bc_c_l, bc_c_out) + LOSS(out_top, out_btm) + LOSS(out_bak, out_fot)
 
@@ -234,14 +245,14 @@ def icbc_save():
 
     print(ic_data.shape, bc_data_c.shape, bc_data_bak.shape)
 
-    np.savez('data/re_expor/4d/icbc.npz', ic_data=ic_data, bc_data_c=bc_data_c,
+    np.savez('data/re_expor/4d/' + str(RE) + '/icbc.npz', ic_data=ic_data, bc_data_c=bc_data_c,
              bc_data_top=bc_data_top, bc_data_btm=bc_data_btm,
              bc_data_fot=bc_data_fot, bc_data_bak=bc_data_bak)
 
 
-def train_noisy_data_save():
+def data_save():
     ori_data = np.load('data/re_expor/site.npz')
-    ori_label = np.load('data/re_expor/field_16384.npz')
+    ori_label = np.load('data/re_expor/field_' + str(RE) + '.npz')
 
     t, x, y, z = ori_data['t'], ori_data['x'], ori_data['y'], ori_data['z']
     T, N = t.shape[0], x.shape[0]
@@ -274,13 +285,18 @@ def train_noisy_data_save():
     validation_data = t_x_y_z[train_size:train_size + 100000]
     validation_label = u_v_w_p[train_size:train_size + 100000]
 
+    np_norm = np.concatenate((np.max(train_label, axis=0)[:, None], np.min(train_label, axis=0)[:, None]), axis=1)
+    train_label = (train_label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
+    validation_label = (validation_label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
+
     var = np.var(train_label, axis=0)
     train_label = np.random.normal(train_label, np.sqrt(var) * noisy_3d_rate)
 
-    np.save('data/re_expor/4d/train_data.npy', train_data)
-    np.save('data/re_expor/4d/train_label.npy', train_label)
-    np.save('data/re_expor/4d/validation_data.npy', validation_data)
-    np.save('data/re_expor/4d/validation_label.npy', validation_label)
+    np.save('data/re_expor/4d/' + str(RE) + '/train_data.npy', train_data)
+    np.save('data/re_expor/4d/' + str(RE) + '/train_label.npy', train_label)
+    np.save('data/re_expor/4d/' + str(RE) + '/validation_data.npy', validation_data)
+    np.save('data/re_expor/4d/' + str(RE) + '/validation_label.npy', validation_label)
+    np.save('data/re_expor/4d/' + str(RE) + '/norm_para.npy', np_norm)
 
 
 kernel = gauss_kernel(size=3)
@@ -290,14 +306,15 @@ ys_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
 zs_idx = [0, 1, 1] if center == 1 else [0, 1, 1, 2, 2]
 weights = [[i, j, k] for i in xs_idx for j in ys_idx for k in zs_idx]
 
-t_data = np.load('data/re_expor/4d/train_data.npy')
+t_data = np.load('data/re_expor/4d/' + str(RE) + '/train_data.npy')
 # [-3.5 -> 5] [0 -> 5] [-2.5 -> 2.5]
 # [-1 0 5] r = 1
-t_label = np.load('data/re_expor/4d/train_label.npy')
-v_data = np.load('data/re_expor/4d/validation_data.npy')
-v_label = np.load('data/re_expor/4d/validation_label.npy')
+t_label = np.load('data/re_expor/4d/' + str(RE) + '/train_label.npy')
+v_data = np.load('data/re_expor/4d/' + str(RE) + '/validation_data.npy')
+v_label = np.load('data/re_expor/4d/' + str(RE) + '/validation_label.npy')
+norm_para = torch.FloatTensor(np.load('data/re_expor/4d/' + str(RE) + '/norm_para.npy')).to(device)
 
-icbc_data = np.load('data/re_expor/4d/icbc.npz')
+icbc_data = np.load('data/re_expor/4d/' + str(RE) + '/icbc.npz')
 ic_v = icbc_data['ic_data']
 bc_c = icbc_data['bc_data_c']
 bc_top = icbc_data['bc_data_top']
@@ -320,6 +337,6 @@ dataloader_2 = DataLoader(dataset=dataset,
                           num_workers=8)
 
 if __name__ == '__main__':
-    # train_noisy_data_save()
+    # data_save()
     # icbc_save()
     pass

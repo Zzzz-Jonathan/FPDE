@@ -1,7 +1,7 @@
 import os
 import plotly.graph_objects as go
 import torch
-from module import Module
+from module import Module, ResLinear
 from parameter import NN_SIZE_3D, module_name, noisy_3d_rate
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
@@ -88,11 +88,11 @@ mesh3D = go.Mesh3d(
     showscale=False)
 
 if __name__ == '__main__':
-    NN2 = Module(NN_SIZE_3D)
-    module_name_2 = '/Users/jonathan/Downloads/train_history/3d/les/Cylinder'  # 'train_history/_3d/' + 'Cylinder_3d_ns_rec'
+    NN2 = ResLinear(shape=[4, 20, 4])
+    module_name_2 = 'train_history/4d/ns/' + 'Cylinder'
 
-    NN1 = Module(NN_SIZE_3D)
-    module_name_1 = '/Users/jonathan/Downloads/train_history/3d/ns/Cylinder'  # 'train_history/_3d/' + 'Cylinder_3d_les_rec'
+    NN1 = ResLinear(shape=[4, 20, 4])
+    module_name_1 = 'train_history/4d/les/' + 'Cylinder'
 
     # NN1 = torch.nn.DataParallel(NN1)
     # NN2 = torch.nn.DataParallel(NN2)
@@ -109,19 +109,19 @@ if __name__ == '__main__':
         NN1.load_state_dict(state['model'])
         print('load success')
 
-    ref = np.load('data/re_expor/field_16384.npz')
+    ref = np.load('data/re_expor/field_4096.npz')
     u, v, w, p = ref['u'], ref['v'], ref['w'], ref['p']
     N, T = u.shape[1], u.shape[0]
 
     d = np.load('data/re_expor/site.npz')
     x, y, z = d['x'][:, 0], d['y'][:, 0], d['z'][:, 0]
-    re = np.log2(16384)
+    re = np.log2(4096)
 
-    t_x_y_z_re = np.zeros((N, 5))
+    t_x_y_z_re = np.zeros((N, 4))
     t_x_y_z_re[:, 1] = x
     t_x_y_z_re[:, 2] = y
     t_x_y_z_re[:, 3] = z
-    t_x_y_z_re[:, 4] = re
+    # t_x_y_z_re[:, 4] = re
 
     # my_plot(x[:, 0], y[:, 0], z[:, 0], c[50, :, 0])
 
@@ -132,13 +132,13 @@ if __name__ == '__main__':
         t_x_y[:, 0] = t
 
         iidx = 0
-        name = ['u', 'v', 'w', 'p'][iidx]
-        c = [u, v, w, p][iidx]
-        c = c[int(idx / 0.02) - 1][:, 0]
-        var_c = np.var(c)
-
-        my_plot(x, y, z, c)
-
+        # name = ['u', 'v', 'w', 'p'][iidx]
+        # c = [u, v, w, p][iidx]
+        # c = c[int(idx / 0.02) - 1][:, 0]
+        # var_c = np.var(c)
+        #
+        # my_plot(x, y, z, c)
+        #
         # std_c = noisy_3d_rate * np.sqrt(var_c)
         # c = np.random.normal(c, std_c)
         #
