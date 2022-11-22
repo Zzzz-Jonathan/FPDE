@@ -1,12 +1,10 @@
 #BSUB -q gpu
-#BSUB -J 4d
+#BSUB -J 3d
 #BSUB -o %J.out
 #BSUB -e %J.err
-#BSUB -R "select[hname='gpu02']"
+#BSUB -R "select[hname='gpu01']"
 #BSUB -n 20
 
 module load python/anaconda3/5.2.0
 source activate my_env
-python /work/mae-zhangds/taiyi_cylinder_flow/les_4d.py &
-python /work/mae-zhangds/taiyi_cylinder_flow/ns_4d.py &
-
+python /work/mae-zhangds/taiyi_cylinder_flow/af.py &

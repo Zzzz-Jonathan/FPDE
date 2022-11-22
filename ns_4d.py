@@ -1,7 +1,7 @@
 import os
 import torch
 from num_4d import loss_pde, loss_les, loss_data, loss_icbc
-from num_4d import dataloader_2 as dataloader, v_data, v_label, my_shuffle
+from num_4d import dataloader_2 as dataloader, v_data, v_label, my_shuffle, norm_para
 from module import ResLinear
 from parameter import module_name, device, EPOCH, LOSS, ITERATION, LR, Re_4d as RE
 from torch.utils.tensorboard import SummaryWriter
@@ -34,6 +34,7 @@ if __name__ == '__main__':
             validation_data, validation_label = my_shuffle(v_data, v_label, 20000)
             validation_data = torch.FloatTensor(validation_data).requires_grad_(False).to(device)
             validation_label = torch.FloatTensor(validation_label).requires_grad_(False).to(device)
+            validation_label = validation_label * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
 
             opt.zero_grad()
             iter += 1
@@ -52,6 +53,7 @@ if __name__ == '__main__':
             loss = data_loss + pde_loss + icbc_loss
 
             validation_out = NN(validation_data)
+            validation_out = validation_out * (norm_para[:, 0] - norm_para[:, 1]) + norm_para[:, 1]
             [va_u, va_v, va_w, va_p] = [LOSS(validation_out[:, 0], validation_label[:, 0]) / 4,
                                         LOSS(validation_out[:, 1], validation_label[:, 1]) / 4,
                                         LOSS(validation_out[:, 2], validation_label[:, 2]) / 4,

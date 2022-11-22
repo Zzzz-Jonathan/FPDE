@@ -89,10 +89,10 @@ mesh3D = go.Mesh3d(
 
 if __name__ == '__main__':
     NN2 = ResLinear(shape=[5, 20, 4])
-    module_name_2 = 'train_history/5d/ns/' + 'Cylinder'
+    module_name_2 = 'train_history/5d/ns/' + 'Cylinder_rec'
 
     NN1 = ResLinear(shape=[5, 20, 4])
-    module_name_1 = 'train_history/5d/les/' + 'Cylinder'
+    module_name_1 = 'train_history/5d/les/' + 'Cylinder_rec'
 
     # NN1 = torch.nn.DataParallel(NN1)
     # NN2 = torch.nn.DataParallel(NN2)
@@ -109,13 +109,13 @@ if __name__ == '__main__':
         NN1.load_state_dict(state['model'])
         print('load success')
 
-    ref = np.load('data/re_expor/field_16384.npz')
+    ref = np.load('data/re_expor/field_512.npz')
     u, v, w, p = ref['u'], ref['v'], ref['w'], ref['p']
     N, T = u.shape[1], u.shape[0]
 
     d = np.load('data/re_expor/site.npz')
     x, y, z = d['x'][:, 0], d['y'][:, 0], d['z'][:, 0]
-    re = np.log2(16384)
+    re = np.log2(512)
 
     t_x_y_z_re = np.zeros((N, 5))
     t_x_y_z_re[:, 1] = x
@@ -125,19 +125,19 @@ if __name__ == '__main__':
 
     # my_plot(x[:, 0], y[:, 0], z[:, 0], c[50, :, 0])
 
-    for idx in np.arange(1, 2, 0.1):  # idx in np.arange(int(T / 10)) * 10:
+    for idx in np.arange(0, 2, 0.1):  # idx in np.arange(int(T / 10)) * 10:
         # t = t_star[idx][0]
         t = idx
         t_x_y = np.copy(t_x_y_z_re)
         t_x_y[:, 0] = t
 
-        iidx = 1
-        # name = ['u', 'v', 'w', 'p'][iidx]
-        # c = [u, v, w, p][iidx]
-        # c = c[int(idx / 0.02) - 1][:, 0]
-        # var_c = np.var(c)
-        #
-        # my_plot(x, y, z, c)
+        iidx = 0
+        name = ['u', 'v', 'w', 'p'][iidx]
+        c = [u, v, w, p][iidx]
+        c = c[int(idx / 0.02) - 1][:, 0]
+        var_c = np.var(c)
+
+        my_plot(x, y, z, c)
 
         # std_c = noisy_3d_rate * np.sqrt(var_c)
         # c = np.random.normal(c, std_c)

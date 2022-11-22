@@ -289,14 +289,14 @@ def data_save():
     train_label = (train_label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
     validation_label = (validation_label - np_norm[:, 1]) / (np_norm[:, 0] - np_norm[:, 1])
 
-    var = np.var(train_label, axis=0)
-    train_label = np.random.normal(train_label, np.sqrt(var) * noisy_3d_rate)
+    # var = np.var(train_label, axis=0)
+    # train_label = np.random.normal(train_label, np.sqrt(var) * noisy_3d_rate)
 
-    np.save('data/re_expor/4d/' + str(RE) + '/train_data.npy', train_data)
+    # np.save('data/re_expor/4d/' + str(RE) + '/train_data.npy', train_data)
     np.save('data/re_expor/4d/' + str(RE) + '/train_label.npy', train_label)
-    np.save('data/re_expor/4d/' + str(RE) + '/validation_data.npy', validation_data)
-    np.save('data/re_expor/4d/' + str(RE) + '/validation_label.npy', validation_label)
-    np.save('data/re_expor/4d/' + str(RE) + '/norm_para.npy', np_norm)
+    # np.save('data/re_expor/4d/' + str(RE) + '/validation_data.npy', validation_data)
+    # np.save('data/re_expor/4d/' + str(RE) + '/validation_label.npy', validation_label)
+    # np.save('data/re_expor/4d/' + str(RE) + '/norm_para.npy', np_norm)
 
 
 kernel = gauss_kernel(size=3)

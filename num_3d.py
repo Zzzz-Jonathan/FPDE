@@ -14,6 +14,7 @@ std_cuvp = noisy_rate * np.sqrt(var_cuvp)
 
 norm_size = int(len(t_x_y) / 2)
 rare_size = int(len(t_x_y) * train_size_rate)
+# print(rare_size)
 
 rare_data = t_x_y[:rare_size]
 rare_label = u_v_p[:rare_size]
@@ -50,4 +51,5 @@ noisy_rare_dataloader_2 = DataLoader(dataset=noisy_rare_dataset,
                                      num_workers=8)
 
 if __name__ == '__main__':
-    print(rare_data.shape)
+    for x, y in rare_dataloader_2:
+        print(x.shape, y.shape)

@@ -20,20 +20,27 @@ norm = None
 
 
 def my_plot(_x, _y, _z, name=None):
+    plt.figure(figsize=(12, 6))
+
     dxs = np.linspace(-2.5, 7.5, 1000)
     dys = np.linspace(-2.5, 2.5, 500)
     dxs, dys = np.meshgrid(dxs, dys)
 
     z_new = griddata((_x, _y), _z, (dxs, dys), method='linear')
 
-    if normalize:
+    if name is not None and normalize:
         exec('global norm; norm = %s_norm' % name[-1])
 
-    plt.imshow(z_new, cmap=plt.get_cmap('hot'), norm=norm)
-    plt.colorbar()
+    # plt.imshow(z_new, cmap=plt.get_cmap('seismic'), norm=None)
+    # C = plt.contour(dxs, dys, z_new, 40, colors='black')
+    plt.contour(dxs, dys, z_new, 30,
+                cmap=plt.get_cmap('gist_ncar'),
+                zorder=1, norm=norm, linewidths=3)
+    # plt.clabel(C, inline=1, fontsize=8)
+    # plt.colorbar()
     # plt.contourf(dxs, dys, z_new, levels=50, cmap=plt.get_cmap('Spectral'))
 
-    cylinder = plt.Circle(xy=(250, 250), radius=50, alpha=1, color='white')
+    cylinder = plt.Circle(xy=(0, 0), radius=0.5, alpha=1, color='black', zorder=2)
     plt.gca().add_patch(cylinder)
 
     if name is not None:
@@ -51,7 +58,7 @@ def scat(_x, _y, _z):
 
 if __name__ == '__main__':
     NN2 = Module(NN_SIZE)
-    module_name = 'train_history/sparse/8/ns/Cylinder'
+    module_name = 'train_history/noisy/6/ns/Cylinder'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
@@ -60,7 +67,7 @@ if __name__ == '__main__':
         print('load success')
 
     NN1 = Module(NN_SIZE)
-    module_name = 'train_history/sparse/8/les/Cylinder'
+    module_name = 'train_history/noisy/6/les/Cylinder'
 
     if os.path.exists(module_name):
         state = torch.load(module_name, map_location=torch.device('cpu'))
@@ -99,18 +106,18 @@ if __name__ == '__main__':
         my_plot(x, y, c, name='ori_' + name)
 
         # std_c = noisy_rate * np.sqrt(var_c)
-        # c = np.random.normal(c, std_c)
+        # nc = np.random.normal(c, std_c)
         #
-        # my_plot(x, y, c, name='noi_' + name)
+        # my_plot(x, y, nc, name='noi_' + name)
 
-        out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN1 = out[:, iidx]
-
-        my_plot(x, y, c_NN1, name='les_' + name)
-
-        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN2 = out[:, iidx]
-
-        my_plot(x, y, c_NN2, name='ns_' + name)
+        # out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN1 = out[:, iidx]
+        #
+        # my_plot(x, y, c_NN1, name='les_' + name)
+        #
+        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN2 = out[:, iidx]
+        #
+        # my_plot(x, y, c_NN2, name='ns_' + name)
 
         break

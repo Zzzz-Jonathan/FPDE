@@ -89,10 +89,10 @@ mesh3D = go.Mesh3d(
 
 if __name__ == '__main__':
     NN2 = ResLinear(shape=[4, 20, 4])
-    module_name_2 = 'train_history/4d/ns/' + 'Cylinder'
+    module_name_2 = 'train_history/4d/4096/ns/' + 'Cylinder'
 
     NN1 = ResLinear(shape=[4, 20, 4])
-    module_name_1 = 'train_history/4d/les/' + 'Cylinder'
+    module_name_1 = 'train_history/4d/4096/les/' + 'Cylinder'
 
     # NN1 = torch.nn.DataParallel(NN1)
     # NN2 = torch.nn.DataParallel(NN2)
@@ -135,23 +135,35 @@ if __name__ == '__main__':
         # name = ['u', 'v', 'w', 'p'][iidx]
         # c = [u, v, w, p][iidx]
         # c = c[int(idx / 0.02) - 1][:, 0]
+        #
+        # rng_state = np.random.get_state()
+        # np.random.shuffle(c)
+        # np.random.set_state(rng_state)
+        # np.random.shuffle(x)
+        # np.random.set_state(rng_state)
+        # np.random.shuffle(y)
+        # np.random.set_state(rng_state)
+        # np.random.shuffle(z)
+        #
+        # len = c.shape[0]
+        #
         # var_c = np.var(c)
         #
-        # my_plot(x, y, z, c)
-        #
+        # my_plot(x[:int(len / 10)], y[:int(len / 10)], z[:int(len / 10)], c[:int(len / 10)])
+
         # std_c = noisy_3d_rate * np.sqrt(var_c)
         # c = np.random.normal(c, std_c)
         #
-        # my_plot(x, y, z, c)
+        # my_plot(x[:int(len / 10)], y[:int(len / 10)], z[:int(len / 10)], c[:int(len / 10)])
 
         out = NN1(torch.FloatTensor(t_x_y)).detach().numpy()
         c_NN1 = out[:, iidx]
 
         my_plot(x, y, z, c_NN1)
 
-        out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
-        c_NN2 = out[:, iidx]
-
-        my_plot(x, y, z, c_NN2)
+        # out = NN2(torch.FloatTensor(t_x_y)).detach().numpy()
+        # c_NN2 = out[:, iidx]
+        #
+        # my_plot(x, y, z, c_NN2)
 
         break

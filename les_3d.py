@@ -1,10 +1,11 @@
 import os
 import torch
-from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation
+from condition import loss_pde, loss_data, loss_les, loss_icbc, loss_collcation, x_star, y_star
 from num_3d import rare_dataloader_1 as dataloader
 from num_3d import validation_data, validation_label
 from module import Module
 from parameter import NN_SIZE, module_name, device, EPOCH, LOSS, sparse_num, LR, ITERATION
+from plt2img import fig2data
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
@@ -12,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 load = False
 store = True
 torch.manual_seed(3407)
-sparse_num = 'pure'
+# sparse_num = 'pure'
 path = 'train_history/sparse/' + str(sparse_num) + '/les'
 module_name = path + '/' + module_name
 
@@ -36,6 +37,12 @@ if __name__ == '__main__':
 
     min_loss = 1e6
     iter = 0
+    x_grid, y_grid = x_star[:, 0], y_star[:, 0]
+    t_x_y_grid = np.zeros((x_grid.shape[0], 3))
+    t_x_y_grid[:, 0] = 8
+    t_x_y_grid[:, 1] = x_grid
+    t_x_y_grid[:, 2] = y_grid
+    t_x_y_grid = torch.FloatTensor(t_x_y_grid).to(device)
 
     # tensorboard --logdir=/Users/jonathan/Documents/PycharmProjects/cylinder_flow/train_history --port 14514
 
@@ -63,7 +70,7 @@ if __name__ == '__main__':
             # pde_loss = pde_loss_c + pde_loss_u + pde_loss_v + pde_loss_div
             # data_loss_2 = loss_data(NN_ns, t_x_y, num_solution)
 
-            loss = pde_loss + icbc_loss
+            loss = data_loss + pde_loss + icbc_loss
             # loss_2 = data_loss_2 + pde_loss
 
             validation_out = NN(validation_data)
@@ -107,6 +114,10 @@ if __name__ == '__main__':
             # writer.add_scalars('ns_validation_loss', {'total': validation_loss_2,
             #                                           'c': ns_c, 'u': ns_u,
             #                                           'v': ns_v, 'p': ns_p}, iter)
+
+            test_out = NN(t_x_y_grid).cpu().detach().numpy()
+            img = fig2data(x_grid, y_grid, test_out[:, 0], test_out[:, 1], test_out[:, 2])
+            writer.add_image('%d' % iter, img, dataformats='HWC')
 
             loss.backward()  #
             opt.step()

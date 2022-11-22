@@ -31,15 +31,15 @@ NN_SIZE_3D = [5] + 5 * [2 * 50] + [4]
 
 Re = 200
 Pe = 10 * Re
-BATCH = 128
+BATCH = 256
 module_name = 'Cylinder'
 
-EPOCH = 50000
-ITERATION = 10000
+EPOCH = 100000
+ITERATION = 100000
 LR = 5e-3
 
 collocation_size = 2 ** 14
-sparse_num = 6
+sparse_num = 15
 train_size_rate = 1 / (2 ** sparse_num)
 noisy_num = 6
 noisy_rate = noisy_num / 4
@@ -50,5 +50,10 @@ size_3d_rate = [1 / i for i in range(10, 100, 2)]
 noisy_3d_rate = 1 / 2
 
 Re_4d = 4096
+
+sparse_cm = 0.5
+sparse_init = 0
+
+sparse_af = 20
 
 LOSS = torch.nn.MSELoss().to(device)
