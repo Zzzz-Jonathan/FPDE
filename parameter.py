@@ -1,8 +1,10 @@
 import torch
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
-
+"""
+The class of the data set used in the experiment.
+"""
 class dataset(Dataset):
     def __init__(self, data_tensor, target_tensor):
         self.data = data_tensor
@@ -12,9 +14,13 @@ class dataset(Dataset):
         return self.data.size(0)
 
     def __getitem__(self, index):
+        # print(index)
         return self.data[index], self.target[index]
 
 
+"""
+Differential calculation method
+"""
 def gradients(u, x, order=1):
     if order == 1:
         return torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u),
@@ -24,7 +30,7 @@ def gradients(u, x, order=1):
         return gradients(gradients(u, x), x, order=order - 1)
 
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
 NN_SIZE = [3] + 5 * [2 * 50] + [3]
 NN_SIZE_3D = [5] + 5 * [2 * 50] + [4]
@@ -34,14 +40,14 @@ Pe = 10 * Re
 BATCH = 256
 module_name = 'Cylinder'
 
-EPOCH = 100000
-ITERATION = 100000
+EPOCH = 10000
+ITERATION = 50000
 LR = 5e-3
 
 collocation_size = 2 ** 14
-sparse_num = 15
+sparse_num = 10  # the sparse rate in the paper
 train_size_rate = 1 / (2 ** sparse_num)
-noisy_num = 6
+noisy_num = 2  # the noisy level in the papaer
 noisy_rate = noisy_num / 4
 PICK = 0
 

@@ -1,5 +1,11 @@
 import torch
-from parameter import NN_SIZE
+
+"""
+This file defines a NN model of cylinder flow. 
+
+The input dimensions of this model are 3, which are time t and position x and y. 
+The model will output velocity u, v, and pressure p based on the input t,x,y.
+"""
 
 
 class Swish(torch.nn.Module):
@@ -12,62 +18,6 @@ class Swish(torch.nn.Module):
 
 def active_fun():
     return Swish()
-
-
-class AF_module(torch.nn.Module):
-    def __init__(self):
-        super(AF_module, self).__init__()
-        self.net = torch.nn.Sequential(
-            torch.nn.Linear(2, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-        )
-
-        self.net1 = torch.nn.Sequential(
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 3),
-        )
-        self.net2 = torch.nn.Sequential(
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 3),
-        )
-        self.net3 = torch.nn.Sequential(
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 50),
-            active_fun(),
-            torch.nn.Linear(50, 3),
-        )
-
-    def forward(self, x, area):
-        x = self.net(x)
-        if area == 1:
-            return self.net1(x)
-        elif area == 2:
-            return self.net2(x)
-        elif area == 3:
-            return self.net3(x)
 
 
 class Module(torch.nn.Module):

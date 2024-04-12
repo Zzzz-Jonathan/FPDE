@@ -1,15 +1,31 @@
 import os
 import torch
 from num_af import loss_pde, loss_data, dataset, loss_fpde, loss_interface
-from module import AF_module as Module
-from parameter import module_name, device, EPOCH, LOSS, sparse_af, LR, ITERATION
-import numpy as np
+from af_module import AF_module as Module
+from parameter import device, EPOCH, sparse_af, LR
 from torch.utils.tensorboard import SummaryWriter
+
+"""
+This file is the main file used to train the NN for arterial blood flow modeling.
+After preparing the data set, run this file directly to start training.
+
+The related hyperparameters are referenced from parameter.py, which need to be appropriate 
+adjusted according to their device conditions.
+
+The network structure of arterial blood flow modeling is defined in artery/af_module.py.
+
+FPDE loss and other losses are defined in artery/num_af.py. Dataloader and data processing 
+related comments are also in artery/num_af.py.
+
+The download method of training data is given in the readme.md. Since the training data comes from 
+others' open source datasets, users need to do structured preprocessing first.
+"""
 
 load = False
 store = True
 torch.manual_seed(3407)
-Filter = False
+Filter = False # Setting this variable controls whether FPDE constraints are used.
+
 path = 'train_history/af/' + str(sparse_af) + ('p/faf' if Filter else 'p/af')
 module_name = path + '/arterial_flow'
 

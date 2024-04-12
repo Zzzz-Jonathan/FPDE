@@ -1,7 +1,15 @@
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
 from parameter import sparse_cm, LOSS, device, gradients, sparse_init
+
+"""
+This file defines the calculation methods of PDE/FPDE loss, data loss and neumann boundary loss.
+Physical constraints are specifically defined based on the given cell migration equation. 
+For the definition method, refer to the function loss_pde. 
+For the FPDE definition method of this equation, refer to the function loss_fpde.
+
+At the same time, the file also processes the structured data and creates a dataset object.
+"""
 
 
 def gauss_kernel(size=5, sigma=1):
@@ -111,11 +119,11 @@ def loss_neumann_bc(nn, data_inp):
 
 kernel = gauss_kernel(5)
 
-data = np.load('data/cell_migration/data.npy')
-label = np.load('data/cell_migration/label.npy')
-bc_data = np.load('data/cell_migration/data_bc.npy')
-ic_data = np.load('data/cell_migration/data_ic.npy')
-ic_label = np.load('data/cell_migration/label_ic.npy')
+data = np.load('../data/cell_migration/data.npy')
+label = np.load('../data/cell_migration/label.npy')
+bc_data = np.load('../data/cell_migration/data_bc.npy')
+ic_data = np.load('../data/cell_migration/data_ic.npy')
+ic_label = np.load('../data/cell_migration/label_ic.npy')
 
 data = data[[0, 3]]
 label = label[[0, 3]]
@@ -164,6 +172,3 @@ data_mean, data_std = torch.FloatTensor(data_mean).to(device), torch.FloatTensor
 label_mean, label_std = torch.FloatTensor(label_mean).to(device), torch.FloatTensor(label_std).to(device)
 
 dataset = (train_data, train_label, val_data, val_label, bc_data)
-
-print(49.64 * 1e-3)
-

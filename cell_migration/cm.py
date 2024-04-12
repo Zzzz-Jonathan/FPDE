@@ -1,16 +1,32 @@
 import os
 import torch
 from num_cm import loss_pde, loss_data, loss_neumann_bc, dataset, full_data, loss_fpde
-from module import Module
-from parameter import module_name, device, EPOCH, LOSS, sparse_cm, LR, ITERATION
-import numpy as np
+from cm_module import Module
+from parameter import device, EPOCH, sparse_cm, LR
 
 from torch.utils.tensorboard import SummaryWriter
+
+"""
+This file is the main file used to train the NN for cell migration modeling. 
+After preparing the data set, run this file directly to start training.
+
+The related hyperparameters are referenced from parameter.py, which need to be appropriate 
+adjusted according to their device conditions.
+
+The network structure of cell migration modeling is defined in cell_migration/cm_module.py.
+
+FPDE loss and other losses are defined in cell_migration/num_cm.py. Dataloader and data processing 
+related comments are also in cell_migration/num_cm.py.
+
+The download method of training data is given in the readme.md. Since the training data comes from 
+others' open source datasets, users need to do structured preprocessing first.
+"""
 
 load = False
 store = True
 torch.manual_seed(3407)
-Filter = True
+Filter = True  # Setting this variable controls whether FPDE constraints are used.
+
 path = 'train_history/cm/' + str(sparse_cm) + ('/fcm' if Filter else '/cm')
 module_name = path + '/cell_migration'
 

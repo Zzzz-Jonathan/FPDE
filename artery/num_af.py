@@ -1,7 +1,15 @@
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
-from parameter import sparse_af, LOSS, device, gradients, sparse_init
+from parameter import LOSS, device, gradients
+
+"""
+This file defines the calculation methods of PDE/FPDE loss, data loss and interface loss.
+Physical constraints are specifically defined based on the given blood flow equation. 
+For the definition method, refer to the function loss_pde. 
+For the FPDE definition method of this equation, refer to the function loss_fpde.
+
+At the same time, the file also processes the structured data and creates a dataset object.
+"""
 
 
 def gauss_kernel(size=5, sigma=1):
@@ -112,7 +120,7 @@ def to_torch(x, grad=True):
 
 kernel = gauss_kernel(5)
 
-path = 'data/arterial_flow/'
+path = '../data/arterial_flow/'
 data = np.load(path + 'train_data.npy') * 1e-3
 label = np.load(path + 'train_label.npy') * np.array([1e-6, 1e-2])
 collocation = np.load(path + 'collocation_data.npy') * 1e-3
